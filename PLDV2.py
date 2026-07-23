@@ -65,7 +65,7 @@ def formatar_moeda(valor):
 
 
 def substituir_texto(doc_obj, mapa_substituicao):
-    """Substitui placeholders nos parágrafos e tabelas do Word."""
+    """Substitui placeholders nos parágrafos e tabelas do Word mantendo a formatação."""
     for p in doc_obj.paragraphs:
         for chave, valor in mapa_substituicao.items():
             if chave in p.text:
@@ -99,8 +99,8 @@ with col_logo:
         st.write("🤖")
 
 with col_titulo:
-    st.title("Gerador de Dossiês PLD-FT (Versão 2 - Tabela de Diligências)")
-    st.subheader("Integração por Planilha + Diligências Alinhadas na Tabela")
+    st.title("Gerador de Dossiês PLD-FT (Versão 2 - Mapeamento Completo)")
+    st.subheader("Integração por Planilha com Ajustes Finais do Layout")
 
 st.markdown("---")
 
@@ -154,15 +154,20 @@ if uploaded_file is not None:
         linha = df[df["ID_Alerta"] == alerta_selecionado].iloc[0]
 
         # Mapeamento DE-PARA
-        op_origem = linha.get("Nome do Cliente", "")
-        op_data = formatar_data(linha.get("Data da Operação", ""))
-        op_valor = formatar_moeda(linha.get("Valor da Operação", ""))
-        data_geracao = formatar_data(linha.get("Data da Detecção do Hit", ""))
-        cpf_cnpj = linha.get("CPF/CNPJ Pesquisado", "")
-        status_ip = linha.get("Parte Relacionada", "")
-        nome_contraparte = linha.get("Nome Encontrado", "")
-        regra_lista = linha.get("Lista", "")
-        obs_complemento = linha.get("Complemento", "")
+        op_origem = linha.get("Nome do Cliente", "")  # Coluna A
+        op_data = formatar_data(linha.get("Data da Operação", ""))  # Coluna C
+        op_valor = formatar_moeda(linha.get("Valor da Operação", ""))  # Coluna D
+        data_geracao = formatar_data(
+            linha.get("Data da Detecção do Hit", "")
+        )  # Coluna E
+        cpf_cnpj = linha.get("CPF/CNPJ Pesquisado", "")  # Coluna G
+        status_ip = linha.get("Parte Relacionada", "")  # Coluna H
+        nome_contraparte = linha.get("Nome Encontrado", "")  # Coluna I
+        regra_lista = linha.get("Lista", "")  # Coluna N
+        obs_complemento = linha.get("Complemento", "")  # Coluna R
+
+        # Operação Destino é o mesmo nome da contraparte
+        op_destino = nome_contraparte
 
         with st.expander(
             "📝 Detalhes da Planilha, Diligências e Decisão", expanded=True
@@ -172,12 +177,12 @@ if uploaded_file is not None:
             with c1:
                 st.markdown("#### 📌 Dados Carregados da Planilha (DE-PARA)")
                 st.text_input(
-                    "Código de Rastreabilidade",
+                    "Código de Rastreabilidade / Nº do Alerta",
                     linha.get("CODIGO_DOSSIE"),
                     disabled=True,
                 )
                 st.text_input(
-                    "Nome da Contraparte (Col. I)",
+                    "Nome da Contraparte / Destino (Col. I)",
                     nome_contraparte,
                     disabled=True,
                 )
@@ -249,7 +254,7 @@ if uploaded_file is not None:
                     height=100,
                 )
 
-        # Monta duas listas paralelas para preencher as 2 colunas da tabela
+        # Formatação das Diligências linha por linha (\n)
         if diligencias_opcoes:
             str_diligencias_nomes = "\n".join(diligencias_opcoes)
             str_diligencias_datas = "\n".join(
@@ -272,6 +277,9 @@ if uploaded_file is not None:
 
             dicionario_dados = {
                 "{{CODIGO_DOSSIE}}": linha.get("CODIGO_DOSSIE", ""),
+                "{{NUM_ALERTA}}": linha.get("CODIGO_DOSSIE", ""),
+                "{{SISTEMA}}": "Advice e-Guardian",
+                "{{NORMATIVA}}": "Lei nº 9.613/1998 e Resolução BCB nº 96/2021",
                 "{{DATA_GERACAO}}": data_geracao,
                 "{{CPF_CNPJ}}": cpf_cnpj,
                 "{{NOME_CONTRAPARTE}}": nome_contraparte,
@@ -280,6 +288,7 @@ if uploaded_file is not None:
                 "{{STATUS_IP}}": status_ip,
                 "{{OBS_CONTRAPARTE}}": obs_complemento,
                 "{{OPERAÇÃO_ORIGEM}}": op_origem,
+                "{{OPERAÇÃO_DESTINO}}": op_destino,
                 "{{OPERAÇÃO_DATA}}": op_data,
                 "{{OPERAÇÃO_VALOR}}": op_valor,
                 "{{ANALISTA}}": analista,
