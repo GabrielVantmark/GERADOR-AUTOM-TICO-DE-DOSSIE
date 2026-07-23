@@ -13,7 +13,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# 2. Injeção de CSS
+# 2. Injeção de CSS para expansão da tela
 st.markdown(
     """
     <style>
@@ -31,11 +31,13 @@ st.markdown(
 
 
 def gerar_codigo_dossie(indice):
+    """Gera código único de rastreabilidade: DOS-YYYYMMDD-001"""
     hoje = datetime.date.today().strftime("%Y%m%d")
     return f"DOS-{hoje}-{str(indice).zfill(3)}"
 
 
 def formatar_data(valor):
+    """Formata datas YYYY-MM-DD para DD/MM/YYYY"""
     if pd.isna(valor) or not valor:
         return ""
     val_str = str(valor).strip()
@@ -46,7 +48,24 @@ def formatar_data(valor):
     return val_str
 
 
+def formatar_moeda(valor):
+    """Formata valor numérico para moeda R$ XX,XX"""
+    if pd.isna(valor) or not valor:
+        return "R$ 0,00"
+    try:
+        val_float = float(str(valor).replace(",", "."))
+        return (
+            f"R$ {val_float:,.2f}"
+            .replace(",", "v")
+            .replace(".", ",")
+            .replace("v", ".")
+        )
+    except Exception:
+        return f"R$ {valor}"
+
+
 def substituir_texto(doc_obj, mapa_substituicao):
+    """Substitui placeholders nos parágrafos e tabelas do Word."""
     for p in doc_obj.paragraphs:
         for chave, valor in mapa_substituicao.items():
             if chave in p.text:
@@ -80,15 +99,13 @@ with col_logo:
         st.write("🤖")
 
 with col_titulo:
-    st.title("Gerador de Dossiês PLD-FT (Versão Inteligente)")
-    st.subheader(
-        "Upload de planilha + Complementação de Análise e Diligências"
-    )
+    st.title("Gerador de Dossiês PLD-FT (Versão 2 - Tabela de Diligências)")
+    st.subheader("Integração por Planilha + Diligências Alinhadas na Tabela")
 
 st.markdown("---")
 
 # --- PASSO 1: UPLOAD ---
-st.markdown("### 1. Selecione a Planilha de Apontamentos")
+st.markdown("### 1. Selecione a Planilha (LISTA DE DETECTADOS)")
 uploaded_file = st.file_uploader(
     "Arraste e solte o arquivo .xlsx ou .csv aqui:", type=["xlsx", "xls", "csv"]
 )
@@ -96,9 +113,9 @@ uploaded_file = st.file_uploader(
 if uploaded_file is not None:
     try:
         if uploaded_file.name.endswith(".csv"):
-            df = pd.read_csv(uploaded_file, dtype=str, skiprows=2)
+            df = pd.read_csv(uploaded_file, dtype=str)
         else:
-            df = pd.read_excel(uploaded_file, dtype=str, skiprows=2)
+            df = pd.read_excel(uploaded_file, dtype=str)
 
         df.columns = [str(c).strip() for c in df.columns]
         df = df.fillna("")
@@ -106,59 +123,90 @@ if uploaded_file is not None:
         df["CODIGO_DOSSIE"] = [
             gerar_codigo_dossie(i + 1) for i in range(len(df))
         ]
+
+        col_cpf = (
+            "CPF/CNPJ Pesquisado"
+            if "CPF/CNPJ Pesquisado" in df.columns
+            else df.columns[6]
+        )
+        col_nome = (
+            "Nome Encontrado"
+            if "Nome Encontrado" in df.columns
+            else df.columns[8]
+        )
+
         df["ID_Alerta"] = df.apply(
-            lambda r: f"{r['CODIGO_DOSSIE']} | CPF/CNPJ: {r.get('Listas - CPF/CNPJ Pesquisado', 'N/A')}",
+            lambda r: f"{r['CODIGO_DOSSIE']} | {r.get(col_nome, '')} (CPF/CNPJ: {r.get(col_cpf, '')})",
             axis=1,
         )
 
         st.success(
-            f"✅ Planilha carregada! **{len(df)} registro(s)** identificados."
+            f"✅ Planilha carregada com sucesso! **{len(df)} registro(s)** identificados."
         )
 
         st.markdown("---")
-        st.markdown("### 2. Análise e Emissão do Dossiê")
+        st.markdown("### 2. Seleção, Diligências com Datas e Análise")
 
         alerta_selecionado = st.selectbox(
-            "Selecione o registro para analisar e gerar:", df["ID_Alerta"].tolist()
+            "Selecione o alerta para revisar e emitir:", df["ID_Alerta"].tolist()
         )
 
         linha = df[df["ID_Alerta"] == alerta_selecionado].iloc[0]
 
-        # --- FORMULÁRIO COMPLEMENTAR DA V1 PARA EDITAR/VALIDAR OS DADOS ---
-        with st.expander("📝 Detalhes do Alerta e Campos de Análise", expanded=True):
-            col1, col2 = st.columns(2)
+        # Mapeamento DE-PARA
+        op_origem = linha.get("Nome do Cliente", "")
+        op_data = formatar_data(linha.get("Data da Operação", ""))
+        op_valor = formatar_moeda(linha.get("Valor da Operação", ""))
+        data_geracao = formatar_data(linha.get("Data da Detecção do Hit", ""))
+        cpf_cnpj = linha.get("CPF/CNPJ Pesquisado", "")
+        status_ip = linha.get("Parte Relacionada", "")
+        nome_contraparte = linha.get("Nome Encontrado", "")
+        regra_lista = linha.get("Lista", "")
+        obs_complemento = linha.get("Complemento", "")
 
-            with col1:
-                st.markdown("#### 📌 Dados Extraídos da Planilha")
-                cod_dossie = linha.get("CODIGO_DOSSIE", "")
-                cpf_cnpj_pesquisado = linha.get(
-                    "Listas - CPF/CNPJ Pesquisado", ""
-                )
-                nome_contraparte = linha.get("Listas - Nome Encontrado", "")
-                tipologia = linha.get("Listas - Nome da Lista Pesquisada", "")
-                data_detecao = formatar_data(
-                    linha.get("Listas - Data Detecção", "")
-                )
+        with st.expander(
+            "📝 Detalhes da Planilha, Diligências e Decisão", expanded=True
+        ):
+            c1, c2 = st.columns(2)
 
+            with c1:
+                st.markdown("#### 📌 Dados Carregados da Planilha (DE-PARA)")
                 st.text_input(
-                    "Código de Rastreabilidade", cod_dossie, disabled=True
+                    "Código de Rastreabilidade",
+                    linha.get("CODIGO_DOSSIE"),
+                    disabled=True,
                 )
                 st.text_input(
-                    "CPF/CNPJ Pesquisado", cpf_cnpj_pesquisado, disabled=True
+                    "Nome da Contraparte (Col. I)",
+                    nome_contraparte,
+                    disabled=True,
                 )
-                st.text_input("Nome Encontrado", nome_contraparte, disabled=True)
-                st.text_input("Lista / Tipologia", tipologia, disabled=True)
+                st.text_input("CPF/CNPJ (Col. G)", cpf_cnpj, disabled=True)
+                st.text_input(
+                    "Regra / Lista Restritiva (Col. N)",
+                    regra_lista,
+                    disabled=True,
+                )
+                st.text_input("Status na IP (Col. H)", status_ip, disabled=True)
+                st.text_input(
+                    "Operação - Origem (Col. A)", op_origem, disabled=True
+                )
+                st.text_input(
+                    "Operação - Data (Col. C)", op_data, disabled=True
+                )
+                st.text_input(
+                    "Operação - Valor (Col. D)", op_valor, disabled=True
+                )
 
-            with col2:
-                st.markdown("#### ⚖️ Decisão de Análise e Diligências (V1)")
-
+            with c2:
+                st.markdown("#### ⚖️ Conclusão da Análise e Diligências")
                 analista = st.text_input("Analista Responsável", "Analista PLD")
                 data_analise = st.date_input(
                     "Data da Análise", datetime.date.today()
                 ).strftime("%d/%m/%Y")
 
                 status_alerta = st.selectbox(
-                    "Conclusão / Decisão de Arquivamento:",
+                    "Decisão de Análise:",
                     [
                         "Arquivado - Sem Indício de Irregularidade",
                         "Arquivado - Falso Positivo",
@@ -167,8 +215,11 @@ if uploaded_file is not None:
                     ],
                 )
 
+                st.markdown("---")
+                st.markdown("##### 🔎 Diligências Realizadas e Datas")
+
                 diligencias_opcoes = st.multiselect(
-                    "Diligências Realizadas:",
+                    "Selecione as diligências efetuadas:",
                     [
                         "Consulta Mídia Negativa",
                         "Pesquisa de Bens / Cartório",
@@ -181,43 +232,70 @@ if uploaded_file is not None:
                     ],
                 )
 
+                datas_diligencias = {}
+                if diligencias_opcoes:
+                    for dil in diligencias_opcoes:
+                        d_data = st.date_input(
+                            f"Data da realização - {dil}:",
+                            datetime.date.today(),
+                            key=f"data_{dil}",
+                        )
+                        datas_diligencias[dil] = d_data.strftime("%d/%m/%Y")
+
+                st.markdown("---")
                 justificativa = st.text_area(
                     "Justificativa da Decisão:",
-                    value="Análise realizada com base nos apontamentos identificados. Não foram constatados indícios que justifiquem a comunicação atípica.",
+                    value=f"Análise realizada sobre o apontamento na lista '{regra_lista}'. Consultas em fontes abertas não identificaram risco iminente de PLD-FT.",
                     height=100,
                 )
 
-        # Prepara string das diligências para o Word
-        diligencias_str = (
-            "\n".join([f"- {d}" for d in diligencias_opcoes])
-            if diligencias_opcoes
-            else "Nenhuma diligência adicional registrada."
-        )
+        # Monta duas listas paralelas para preencher as 2 colunas da tabela
+        if diligencias_opcoes:
+            str_diligencias_nomes = "\n".join(diligencias_opcoes)
+            str_diligencias_datas = "\n".join(
+                [
+                    datas_diligencias.get(
+                        d, datetime.date.today().strftime("%d/%m/%Y")
+                    )
+                    for d in diligencias_opcoes
+                ]
+            )
+        else:
+            str_diligencias_nomes = "Nenhuma diligência registrada"
+            str_diligencias_datas = "-"
 
-        if st.button("🚀 Gerar Dossiê Completo (.docx)"):
+        st.markdown("---")
+        st.markdown("### 3. Emissão do Dossiê")
+
+        if st.button("🚀 Gerar Dossiê Word (.docx)"):
             doc = Document("modelo_dossie.docx")
 
             dicionario_dados = {
-                "{{CODIGO_DOSSIE}}": cod_dossie,
-                "{{NUM_ALERTA}}": cpf_cnpj_pesquisado,
-                "{{DATA_GERACAO}}": data_detecao,
+                "{{CODIGO_DOSSIE}}": linha.get("CODIGO_DOSSIE", ""),
+                "{{DATA_GERACAO}}": data_geracao,
+                "{{CPF_CNPJ}}": cpf_cnpj,
+                "{{NOME_CONTRAPARTE}}": nome_contraparte,
+                "{{REGRA}}": regra_lista,
+                "{{TIPOLOGIA}}": regra_lista,
+                "{{STATUS_IP}}": status_ip,
+                "{{OBS_CONTRAPARTE}}": obs_complemento,
+                "{{OPERAÇÃO_ORIGEM}}": op_origem,
+                "{{OPERAÇÃO_DATA}}": op_data,
+                "{{OPERAÇÃO_VALOR}}": op_valor,
                 "{{ANALISTA}}": analista,
                 "{{DATA_ANALISE}}": data_analise,
-                "{{SISTEMA}}": "Advice e-Guardian",
                 "{{STATUS_ALERTA}}": status_alerta,
-                "{{TIPOLOGIA}}": tipologia,
-                "{{REGRA}}": "Apontamento em Listas Restritivas",
-                "{{NORMATIVA}}": "Lei nº 9.613/1998 e Resolução BCB nº 96/2021",
-                "{{NOME_CONTRAPARTE}}": nome_contraparte,
-                "{{CPF_CNPJ}}": linha.get("Listas - CPF/CNPJ Encontrado", ""),
-                "{{OBS_CONTRAPARTE}}": f"Vinculação: {linha.get('Listas - Parte Relac', '')} | Grupo: {linha.get('Listas - Grupo Atuação', '')}",
-                "{{DILIGENCIAS}}": diligencias_str,
+                "{{DILIGENCIAS_NOME}}": str_diligencias_nomes,
+                "{{DILIGENCIAS_DATA}}": str_diligencias_datas,
+                "{{DILIGENCIAS}}": str_diligencias_nomes,
                 "{{JUSTIFICATIVA}}": justificativa,
             }
 
             substituir_texto(doc, dicionario_dados)
 
+            cod_dossie = linha.get("CODIGO_DOSSIE", "DOSSIE")
             nome_arquivo = f"{cod_dossie}_Dossie_PLD.docx"
+
             buffer = io.BytesIO()
             doc.save(buffer)
             buffer.seek(0)
@@ -230,4 +308,4 @@ if uploaded_file is not None:
             )
 
     except Exception as e:
-        st.error(f"Erro ao processar a planilha: {e}")
+        st.error(f"Erro ao ler/processar a planilha: {e}")
