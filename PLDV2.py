@@ -64,8 +64,34 @@ def formatar_moeda(valor):
         return f"R$ {valor}"
 
 
+def preencher_tabela_diligencias(doc_obj, lista_diligencias, datas_diligencias):
+    """
+    Localiza a tabela com {{DILIGENCIAS_NOME}} e adiciona uma LINHA REAL na tabela para cada diligência.
+    """
+    for table in doc_obj.tables:
+        for row_idx, row in enumerate(table.rows):
+            cell_texts = [c.text for c in row.cells]
+            if any("{{DILIGENCIAS_NOME}}" in t for t in cell_texts):
+                # Encontrou a linha modelo
+                for dil in lista_diligencias:
+                    dt = datas_diligencias.get(
+                        dil, datetime.date.today().strftime("%d/%m/%Y")
+                    )
+                    new_row = table.add_row()
+                    if len(new_row.cells) >= 2:
+                        new_row.cells[0].text = str(dil)
+                        new_row.cells[1].text = str(dt)
+                    elif len(new_row.cells) == 1:
+                        new_row.cells[0].text = f"{dil} - {dt}"
+
+                # Remove a linha original de modelo (template)
+                tr = row._tr
+                table._tbl.remove(tr)
+                break
+
+
 def substituir_texto(doc_obj, mapa_substituicao):
-    """Substitui placeholders nos parágrafos e tabelas do Word mantendo a formatação."""
+    """Substitui placeholders simples nos parágrafos e tabelas do Word."""
     for p in doc_obj.paragraphs:
         for chave, valor in mapa_substituicao.items():
             if chave in p.text:
@@ -99,8 +125,10 @@ with col_logo:
         st.write("🤖")
 
 with col_titulo:
-    st.title("Gerador de Dossiês PLD-FT (Versão 2 - Mapeamento Completo)")
-    st.subheader("Integração por Planilha com Ajustes Finais do Layout")
+    st.title("Gerador de Dossiês PLD-FT (Versão Ajustada)")
+    st.subheader(
+        "Tabela com Novas Linhas Automáticas + Decisão Manual de Arquivamento"
+    )
 
 st.markdown("---")
 
@@ -154,30 +182,27 @@ if uploaded_file is not None:
         linha = df[df["ID_Alerta"] == alerta_selecionado].iloc[0]
 
         # Mapeamento DE-PARA
-        op_origem = linha.get("Nome do Cliente", "")  # Coluna A
-        op_data = formatar_data(linha.get("Data da Operação", ""))  # Coluna C
-        op_valor = formatar_moeda(linha.get("Valor da Operação", ""))  # Coluna D
-        data_geracao = formatar_data(
-            linha.get("Data da Detecção do Hit", "")
-        )  # Coluna E
-        cpf_cnpj = linha.get("CPF/CNPJ Pesquisado", "")  # Coluna G
-        status_ip = linha.get("Parte Relacionada", "")  # Coluna H
-        nome_contraparte = linha.get("Nome Encontrado", "")  # Coluna I
-        regra_lista = linha.get("Lista", "")  # Coluna N
-        obs_complemento = linha.get("Complemento", "")  # Coluna R
-
-        # Operação Destino é o mesmo nome da contraparte
+        op_origem = linha.get("Nome do Cliente", "")
+        op_data = formatar_data(linha.get("Data da Operação", ""))
+        op_valor = formatar_moeda(linha.get("Valor da Operação", ""))
+        data_geracao = formatar_data(linha.get("Data da Detecção do Hit", ""))
+        cpf_cnpj = linha.get("CPF/CNPJ Pesquisado", "")
+        status_ip = linha.get("Parte Relacionada", "")
+        nome_contraparte = linha.get("Nome Encontrado", "")
+        regra_lista = linha.get("Lista", "")
+        obs_complemento = linha.get("Complemento", "")
         op_destino = nome_contraparte
 
         with st.expander(
-            "📝 Detalhes da Planilha, Diligências e Decisão", expanded=True
+            "📝 Detalhes da Planilha, Diligências e Decisão Manual",
+            expanded=True,
         ):
             c1, c2 = st.columns(2)
 
             with c1:
                 st.markdown("#### 📌 Dados Carregados da Planilha (DE-PARA)")
                 st.text_input(
-                    "Código de Rastreabilidade / Nº do Alerta",
+                    "Código de Rastreabilidade / Nº Alerta",
                     linha.get("CODIGO_DOSSIE"),
                     disabled=True,
                 )
@@ -204,24 +229,26 @@ if uploaded_file is not None:
                 )
 
             with c2:
-                st.markdown("#### ⚖️ Conclusão da Análise e Diligências")
+                st.markdown("#### ⚖️ Conclusão da Análise e Decisão")
                 analista = st.text_input("Analista Responsável", "Analista PLD")
                 data_analise = st.date_input(
                     "Data da Análise", datetime.date.today()
                 ).strftime("%d/%m/%Y")
 
-                status_alerta = st.selectbox(
-                    "Decisão de Análise:",
+                # OPÇÕES MANUAIS DE DECISÃO RESTAURADAS
+                decisao_arquivamento = st.selectbox(
+                    "6. Decisão de Arquivamento / Conclusão:",
                     [
                         "Arquivado - Sem Indício de Irregularidade",
-                        "Arquivado - Falso Positivo",
+                        "Arquivado - Falso Positivo / Homônimo",
                         "Encaminhado para Comunicação (COAF)",
-                        "Em Monitoramento",
+                        "Em Monitoramento Contínuo",
+                        "Outro (Especifique na Justificativa)",
                     ],
                 )
 
                 st.markdown("---")
-                st.markdown("##### 🔎 Diligências Realizadas e Datas")
+                st.markdown("##### 🔎 Diligências Realizadas (Adiciona Linhas)")
 
                 diligencias_opcoes = st.multiselect(
                     "Selecione as diligências efetuadas:",
@@ -254,27 +281,19 @@ if uploaded_file is not None:
                     height=100,
                 )
 
-        # Formatação das Diligências linha por linha (\n)
-        if diligencias_opcoes:
-            str_diligencias_nomes = "\n".join(diligencias_opcoes)
-            str_diligencias_datas = "\n".join(
-                [
-                    datas_diligencias.get(
-                        d, datetime.date.today().strftime("%d/%m/%Y")
-                    )
-                    for d in diligencias_opcoes
-                ]
-            )
-        else:
-            str_diligencias_nomes = "Nenhuma diligência registrada"
-            str_diligencias_datas = "-"
-
         st.markdown("---")
         st.markdown("### 3. Emissão do Dossiê")
 
         if st.button("🚀 Gerar Dossiê Word (.docx)"):
             doc = Document("modelo_dossie.docx")
 
+            # 1. Primeiro insere as linhas reais na tabela de diligências
+            if diligencias_opcoes:
+                preencher_tabela_diligencias(
+                    doc, diligencias_opcoes, datas_diligencias
+                )
+
+            # 2. Dicionário com todas as substituições do documento
             dicionario_dados = {
                 "{{CODIGO_DOSSIE}}": linha.get("CODIGO_DOSSIE", ""),
                 "{{NUM_ALERTA}}": linha.get("CODIGO_DOSSIE", ""),
@@ -293,10 +312,8 @@ if uploaded_file is not None:
                 "{{OPERAÇÃO_VALOR}}": op_valor,
                 "{{ANALISTA}}": analista,
                 "{{DATA_ANALISE}}": data_analise,
-                "{{STATUS_ALERTA}}": status_alerta,
-                "{{DILIGENCIAS_NOME}}": str_diligencias_nomes,
-                "{{DILIGENCIAS_DATA}}": str_diligencias_datas,
-                "{{DILIGENCIAS}}": str_diligencias_nomes,
+                "{{STATUS_ALERTA}}": decisao_arquivamento,
+                "{{DECISAO}}": decisao_arquivamento,
                 "{{JUSTIFICATIVA}}": justificativa,
             }
 
