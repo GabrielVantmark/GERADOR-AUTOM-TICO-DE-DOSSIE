@@ -445,6 +445,28 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                 preencher_tabela_diligencias(
                     doc, lista_final_diligencias, datas_diligencias
                 )
+# Define a data atual por extenso para o cabeçalho (ex: "São Paulo, 24 de julho de 2026")
+            # Ou se preferir apenas em formato DD/MM/AAAA:
+            # data_hoje_extenso = datetime.date.today().strftime("%d/%m/%Y")
+
+            meses = [
+                "janeiro",
+                "fevereiro",
+                "março",
+                "abril",
+                "maio",
+                "junho",
+                "julho",
+                "agosto",
+                "setembro",
+                "outubro",
+                "novembro",
+                "dezembro",
+            ]
+            hoje = datetime.date.today()
+            data_hoje_extenso = (
+                f"São Paulo, {hoje.day} de {meses[hoje.month - 1]} de {hoje.year}"
+            )
 
             dicionario_dados = {
                 "{{CODIGO_DOSSIE}}": linha.get("CODIGO_DOSSIE", ""),
@@ -452,6 +474,7 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                 "{{SISTEMA}}": "Advice e-Guardian",
                 "{{NORMATIVA}}": "Lei nº 9.613/1998 e Resolução BCB nº 96/2021",
                 "{{DATA_GERACAO}}": data_geracao,
+                "{{DATA_ELABORACAO}}": data_hoje_extenso,
                 "{{CPF_CNPJ}}": cpf_cnpj,
                 "{{NOME_CONTRAPARTE}}": nome_contraparte,
                 "{{REGRA}}": regra_lista,
