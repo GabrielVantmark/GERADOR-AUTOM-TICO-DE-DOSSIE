@@ -31,27 +31,18 @@ bg_css = ""
 if os.path.exists(NOME_IMAGEM_FUNDO):
     bin_str = get_base64_of_bin_file(NOME_IMAGEM_FUNDO)
     bg_css = f"""
-        .stApp::before {{
-            content: "";
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: url("data:image/jpeg;base64,{bin_str}") no-repeat center center fixed;
-            background-size: cover;
-            opacity: 0.30; /* Opacidade em 30% */
-            filter: blur(10px); /* Efeito de Blur / Desfoque */
-            z-index: -1;
-        }}
         .stApp {{
-            background-color: #09090b;
+            background: linear-gradient(rgba(9, 9, 11, 0.70), rgba(9, 9, 11, 0.70)),
+                        url("data:image/jpeg;base64,{bin_str}") no-repeat center center fixed !important;
+            background-size: cover !important;
+            backdrop-filter: blur(8px) !important;
+            -webkit-backdrop-filter: blur(8px) !important;
         }}
     """
 else:
     bg_css = """
         .stApp {
-            background-color: #09090b;
+            background-color: #09090b !important;
         }
     """
 
@@ -70,10 +61,10 @@ st.markdown(
         max-width: 95% !important;
     }}
 
-    /* Estilização das Abas - Dark Neutro */
+    /* Estilização das Abas - Dark Neutro com Blur */
     .stTabs [data-baseweb="tab-list"] {{
         gap: 8px;
-        background-color: rgba(18, 18, 18, 0.75);
+        background-color: rgba(18, 18, 18, 0.65);
         padding: 6px;
         border-radius: 10px;
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -225,7 +216,6 @@ def substituir_texto(doc_obj, mapa_substituicao):
 # --- CABEÇALHO DA PLATAFORMA ---
 col_logo, col_titulo = st.columns([1.2, 5], vertical_alignment="center")
 with col_logo:
-    # Carrega a logo branca enviada (noBgWhite.png)
     if os.path.exists("noBgWhite.png"):
         st.image("noBgWhite.png", width=180)
     else:
