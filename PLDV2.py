@@ -9,7 +9,7 @@ import streamlit as st
 # 1. Configuração da página com layout amplo
 st.set_page_config(
     page_title="Gerador de Dossiê PLD-FT",
-    page_icon="🛡️",
+    page_icon="logo title.png",
     layout="wide",
     initial_sidebar_state="expanded",
 )
