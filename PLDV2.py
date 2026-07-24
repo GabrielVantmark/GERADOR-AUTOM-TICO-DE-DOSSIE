@@ -31,10 +31,21 @@ bg_css = ""
 if os.path.exists(NOME_IMAGEM_FUNDO):
     bin_str = get_base64_of_bin_file(NOME_IMAGEM_FUNDO)
     bg_css = f"""
-        .stApp {{
-            background: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.55)),
-                        url("data:image/jpeg;base64,{bin_str}") no-repeat center center fixed;
+        .stApp::before {{
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url("data:image/jpeg;base64,{bin_str}") no-repeat center center fixed;
             background-size: cover;
+            opacity: 0.30; /* Opacidade em 30% */
+            filter: blur(10px); /* Efeito de Blur / Desfoque */
+            z-index: -1;
+        }}
+        .stApp {{
+            background-color: #09090b;
         }}
     """
 else:
@@ -44,7 +55,7 @@ else:
         }
     """
 
-# 2. Injeção de CSS para Estilização Dark / Neutra / Realce Escuro (Sem Azul)
+# 2. Injeção de CSS para Estilização Dark Premium / Neutra
 st.markdown(
     f"""
     <style>
@@ -62,10 +73,10 @@ st.markdown(
     /* Estilização das Abas - Dark Neutro */
     .stTabs [data-baseweb="tab-list"] {{
         gap: 8px;
-        background-color: rgba(18, 18, 18, 0.65);
+        background-color: rgba(18, 18, 18, 0.75);
         padding: 6px;
         border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         backdrop-filter: blur(12px);
     }}
 
@@ -85,22 +96,22 @@ st.markdown(
     .stTabs [aria-selected="true"] {{
         background-color: #18181B !important;
         color: #FFFFFF !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
     }}
 
-    /* Estilização das Caixas de Texto / Inputs em Preto Semitransparente */
+    /* Estilização das Caixas de Texto / Inputs */
     .stTextInput>div>div>input, .stSelectbox>div>div>div, .stTextArea>div>div>textarea {{
-        background-color: rgba(10, 10, 12, 0.75) !important;
+        background-color: rgba(15, 15, 18, 0.85) !important;
         color: #F4F4F5 !important;
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
         border-radius: 8px !important;
     }}
 
-    /* Foco nas Caixas de Texto - Borda Clara Neutra */
+    /* Foco nas Caixas de Texto */
     .stTextInput>div>div>input:focus, .stSelectbox>div>div>div:focus, .stTextArea>div>div>textarea:focus {{
         border-color: rgba(255, 255, 255, 0.4) !important;
-        box-shadow: 0 0 8px rgba(255, 255, 255, 0.1) !important;
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.15) !important;
     }}
 
     /* Botão Principal Escuro / Dark Obsidian */
@@ -212,11 +223,12 @@ def substituir_texto(doc_obj, mapa_substituicao):
 
 
 # --- CABEÇALHO DA PLATAFORMA ---
-col_logo, col_titulo = st.columns([1, 5], vertical_alignment="center")
+col_logo, col_titulo = st.columns([1.2, 5], vertical_alignment="center")
 with col_logo:
-    try:
-        st.image("noBgColor.png", width=150)
-    except Exception:
+    # Carrega a logo branca enviada (noBgWhite.png)
+    if os.path.exists("noBgWhite.png"):
+        st.image("noBgWhite.png", width=180)
+    else:
         st.write("🛡️")
 
 with col_titulo:
