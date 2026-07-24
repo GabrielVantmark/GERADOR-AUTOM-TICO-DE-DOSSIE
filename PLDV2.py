@@ -126,7 +126,7 @@ with col_logo:
 with col_titulo:
     st.title("Gerador de Dossiês PLD-FT")
     st.subheader(
-        "Integração Automática com Justificativa Dinâmica e Classificação de Risco"
+        "Integração por Planilha + Diligências Padrão e Personalizadas"
     )
 
 st.markdown("---")
@@ -192,7 +192,7 @@ if uploaded_file is not None:
         obs_complemento = linha.get("Complemento", "")
         op_destino = nome_contraparte
 
-        # Dicionário de Justificativas Dinâmicas Pré-Prontas
+        # Dicionário de Justificativas Dinâmicas
         modelos_justificativas = {
             "Arquivado - Sem Indício de Irregularidade": f"Análise realizada sobre o apontamento na lista '{regra_lista}'. Consultas efetuadas nas fontes abertas e bases públicas não identificaram risco iminente de PLD-FT ou atipicidade financeira.",
             "Arquivado - Falso Positivo / Homônimo": f"Análise efetuada indica tratar-se de Falso Positivo / Homônimo. Os dados cadastrais do pesquisado não coincidem com o indivíduo/entidade registrado na lista restritiva '{regra_lista}'.",
@@ -243,7 +243,6 @@ if uploaded_file is not None:
                     "Data da Análise", datetime.date.today()
                 ).strftime("%d/%m/%Y")
 
-                # CLASSIFICAÇÃO DE RISCO DO CLIENTE (NOVO CAMPO)
                 risco_cliente = st.selectbox(
                     "Classificação de Risco do Cliente:",
                     ["Baixo", "Médio", "Alto", "Não Classificado"],
@@ -256,10 +255,10 @@ if uploaded_file is not None:
                 )
 
                 st.markdown("---")
-                st.markdown("##### 🔎 Diligências Realizadas (Adiciona Linhas)")
+                st.markdown("##### 🔎 Diligências Realizadas")
 
                 diligencias_opcoes = st.multiselect(
-                    "Selecione as diligências efetuadas:",
+                    "Selecione as diligências padrão efetuadas:",
                     [
                         "Consulta Mídia Negativa",
                         "Pesquisa de Bens / Cartório",
@@ -272,11 +271,23 @@ if uploaded_file is not None:
                     ],
                 )
 
+                # DILIGÊNCIA PERSONALIZADA (NOVA FUNCIONALIDADE)
+                diligencia_extra = st.text_input(
+                    "➕ Adicionar outra diligência personalizada (opcional):",
+                    placeholder="Ex: Análise do Histórico da Junta Comercial / DRE",
+                )
+
+                # Junta as padrão com a personalizada (se preenchida)
+                lista_final_diligencias = list(diligencias_opcoes)
+                if diligencia_extra.strip():
+                    lista_final_diligencias.append(diligencia_extra.strip())
+
                 datas_diligencias = {}
-                if diligencias_opcoes:
-                    for dil in diligencias_opcoes:
+                if lista_final_diligencias:
+                    st.markdown("**Datas de realização por diligência:**")
+                    for dil in lista_final_diligencias:
                         d_data = st.date_input(
-                            f"Data da realização - {dil}:",
+                            f"Data - {dil}:",
                             datetime.date.today(),
                             key=f"data_{dil}",
                         )
@@ -284,7 +295,6 @@ if uploaded_file is not None:
 
                 st.markdown("---")
 
-                # Texto Padrão com base na decisão selecionada
                 texto_padrao = modelos_justificativas.get(
                     decisao_arquivamento, ""
                 )
@@ -301,13 +311,12 @@ if uploaded_file is not None:
         if st.button("🚀 Gerar Dossiê Word (.docx)"):
             doc = Document("modelo_dossie.docx")
 
-            # 1. Preenche a tabela de diligências com linhas dinâmicas
-            if diligencias_opcoes:
+            # Preenche a tabela de diligências com as padrão + personalizadas
+            if lista_final_diligencias:
                 preencher_tabela_diligencias(
-                    doc, diligencias_opcoes, datas_diligencias
+                    doc, lista_final_diligencias, datas_diligencias
                 )
 
-            # 2. Mapeamento de todas as tags do Word
             dicionario_dados = {
                 "{{CODIGO_DOSSIE}}": linha.get("CODIGO_DOSSIE", ""),
                 "{{NUM_ALERTA}}": linha.get("CODIGO_DOSSIE", ""),
@@ -324,7 +333,7 @@ if uploaded_file is not None:
                 "{{OPERAÇÃO_DESTINO}}": op_destino,
                 "{{OPERAÇÃO_DATA}}": op_data,
                 "{{OPERAÇÃO_VALOR}}": op_valor,
-                "{{RISCO_CLIENTE}}": risco_cliente,  # Tag nova de Risco
+                "{{RISCO_CLIENTE}}": risco_cliente,
                 "{{ANALISTA}}": analista,
                 "{{DATA_ANALISE}}": data_analise,
                 "{{STATUS_ALERTA}}": decisao_arquivamento,
