@@ -17,107 +17,68 @@ st.set_page_config(
 )
 
 
-# OTIMIZAÇÃO DE DESEMPENHO E COMPRESSÃO DE IMAGEM
+# Otimização da imagem de fundo
 @st.cache_data
 def get_optimized_base64_background(bin_file):
     if os.path.exists(bin_file):
         try:
-            # Abre e otimiza a imagem em memória para não pesá-la no navegador
             img = Image.open(bin_file)
-            img.thumbnail((1920, 1080))  # Redimensiona para Full HD máx
-
+            img.thumbnail((1920, 1080))
             buffer = io.BytesIO()
             if img.mode != "RGB":
                 img = img.convert("RGB")
-
             img.save(buffer, format="JPEG", quality=75, optimize=True)
             return base64.b64encode(buffer.getvalue()).decode()
         except Exception:
             with open(bin_file, "rb") as f:
-                data = f.read()
-            return base64.b64encode(data).decode()
+                return base64.b64encode(f.read()).decode()
     return None
 
 
 NOME_IMAGEM_FUNDO = (
     "abstract-metallic-wave-texture-with-glossy-reflective-surface-dark-lighting.jpg"
 )
-
-# Carrega a imagem do fundo otimizada via cache
 bin_str = get_optimized_base64_background(NOME_IMAGEM_FUNDO)
 
-if bin_str:
-    bg_css = f"""
-        .stApp {{
-            background: linear-gradient(rgba(9, 9, 11, 0.80), rgba(9, 9, 11, 0.80)),
-                        url("data:image/jpeg;base64,{bin_str}") no-repeat center center fixed !important;
-            background-size: cover !important;
-            backdrop-filter: blur(11px) !important;
-            -webkit-backdrop-filter: blur(11px) !important;
-        }}
-    """
-else:
-    bg_css = """
-        .stApp {
-            background-color: #09090b !important;
-        }
-    """
+bg_css = (
+    f"""
+    .stApp {{
+        background: linear-gradient(rgba(9, 9, 11, 0.80), rgba(9, 9, 11, 0.80)),
+                    url("data:image/jpeg;base64,{bin_str}") no-repeat center center fixed !important;
+        background-size: cover !important;
+    }}
+"""
+    if bin_str
+    else ".stApp { background-color: #09090b !important; }"
+)
 
-# 2. Injeção de CSS Corrigido (Sem duplicação no botão de upload)
+# 2. Injeção de CSS Cirúrgico (Sem interferir nos menus internos do Streamlit)
 st.markdown(
     f"""
     <style>
-    /* Importação das fontes Bricolage Grotesque e Inter */
     @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Inter:wght@400;600;700&display=swap');
 
     {bg_css}
 
-    /* FORÇAR BASE ESCURA E TEXTOS CLAROS */
-    .stApp, .block-container {{
-        color: #F4F4F5 !important;
-    }}
-
-    /* Títulos Principais */
-    h1 {{
+    /* Tipografia e Títulos Principais */
+    .stApp h1 {{
         font-family: 'Bricolage Grotesque', sans-serif !important;
-        font-optical-sizing: auto;
         font-weight: 800 !important;
-        font-variation-settings: "wdth" 100;
-        font-size: 2.6rem !important;
-        letter-spacing: -0.5px !important;
+        font-size: 2.5rem !important;
         color: #FFFFFF !important;
     }}
 
-    /* Subtítulos e Rótulos */
-    h2, h3, h4, label, .stMarkdown, p, span {{
+    .stApp h2, .stApp h3, .stApp h4, .stApp label, .stApp .stMarkdown p {{
         font-family: 'Bricolage Grotesque', sans-serif !important;
         color: #F4F4F5 !important;
     }}
 
-    .stCaption, small {{
-        color: #A1A1AA !important;
-    }}
-
-    /* Container Principal */
-    .block-container {{
-        padding-top: 1.5rem;
-        padding-bottom: 2rem;
-        padding-left: 3rem;
-        padding-right: 3rem;
-        max-width: 95% !important;
-    }}
-
-    /* CAIXA DE UPLOAD (FILE UPLOADER CORRIGIDO) */
-    [data-testid="stFileUploader"] {{
+    /* Estilização ISOLADA da caixa de Upload (Sem quebrar os botões/textos internos) */
+    [data-testid="stFileUploader"] > div {{
         background-color: rgba(24, 24, 27, 0.85) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        border-radius: 10px !important;
-        padding: 1rem !important;
-    }}
-
-    [data-testid="stFileUploaderDropzone"] {{
-        background-color: transparent !important;
-        border: none !important;
+        border: 1px dashed rgba(255, 255, 255, 0.3) !important;
+        border-radius: 12px !important;
+        padding: 1.5rem !important;
     }}
 
     /* Estilização das Abas */
@@ -127,19 +88,17 @@ st.markdown(
         padding: 6px;
         border-radius: 10px;
         border: 1px solid rgba(255, 255, 255, 0.15);
-        backdrop-filter: blur(12px);
     }}
 
     .stTabs [data-baseweb="tab"] {{
-        height: 46px;
-        white-space: pre-wrap;
+        height: 44px;
         background-color: transparent;
         border-radius: 6px;
         color: #A1A1AA !important;
         font-family: 'Bricolage Grotesque', sans-serif !important;
         font-weight: 600;
         font-size: 1rem;
-        padding: 0 18px;
+        padding: 0 16px;
         border: none !important;
     }}
 
@@ -147,11 +106,10 @@ st.markdown(
         background-color: #18181B !important;
         color: #FFFFFF !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
     }}
 
-    /* Inputs e Selectbox */
-    .stTextInput>div>div>input, .stSelectbox>div>div>div, .stTextArea>div>div>textarea {{
+    /* Inputs e Caixas de Texto */
+    .stTextInput input, .stSelectbox select, .stTextArea textarea {{
         background-color: rgba(15, 15, 18, 0.9) !important;
         color: #FFFFFF !important;
         border: 1px solid rgba(255, 255, 255, 0.2) !important;
@@ -159,27 +117,15 @@ st.markdown(
         font-family: 'Inter', sans-serif !important;
     }}
 
-    /* Botão Ação Principal */
-    .stButton>button {{
+    /* Botões Padrão das Ações */
+    .stButton > button {{
         width: 100%;
         background: linear-gradient(180deg, #27272A 0%, #09090B 100%);
         color: #FFFFFF !important;
         font-family: 'Bricolage Grotesque', sans-serif !important;
         font-weight: 700;
-        font-size: 1.15rem;
-        letter-spacing: 0.5px;
         border-radius: 8px;
-        padding: 0.8rem 1.5rem;
         border: 1px solid rgba(255, 255, 255, 0.25);
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
-        transition: all 0.2s ease;
-    }}
-
-    .stButton>button:hover {{
-        background: linear-gradient(180deg, #3F3F46 0%, #18181B 100%);
-        border-color: rgba(255, 255, 255, 0.5);
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8);
-        transform: translateY(-1px);
     }}
     </style>
     """,
@@ -268,7 +214,7 @@ def substituir_texto(doc_obj, mapa_substituicao):
 col_logo, col_titulo = st.columns([1.2, 5], vertical_alignment="center")
 with col_logo:
     if os.path.exists("noBgWhite.png"):
-        st.image("noBgWhite.png", width=220)
+        st.image("noBgWhite.png", width=180)
     else:
         st.write("🛡️")
 
@@ -483,7 +429,6 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                     doc, lista_final_diligencias, datas_diligencias
                 )
 
-            # Data de elaboração por extenso para o cabeçalho
             meses = [
                 "janeiro",
                 "fevereiro",
