@@ -72,7 +72,6 @@ def preencher_tabela_diligencias(doc_obj, lista_diligencias, datas_diligencias):
         for row_idx, row in enumerate(table.rows):
             cell_texts = [c.text for c in row.cells]
             if any("{{DILIGENCIAS_NOME}}" in t for t in cell_texts):
-                # Encontrou a linha modelo
                 for dil in lista_diligencias:
                     dt = datas_diligencias.get(
                         dil, datetime.date.today().strftime("%d/%m/%Y")
@@ -125,9 +124,9 @@ with col_logo:
         st.write("🤖")
 
 with col_titulo:
-    st.title("Gerador de Dossiês PLD-FT (Versão Ajustada)")
+    st.title("Gerador de Dossiês PLD-FT")
     st.subheader(
-        "Tabela com Novas Linhas Automáticas + Decisão Manual de Arquivamento"
+        "Integração Automática com Justificativa Dinâmica e Classificação de Risco"
     )
 
 st.markdown("---")
@@ -173,7 +172,7 @@ if uploaded_file is not None:
         )
 
         st.markdown("---")
-        st.markdown("### 2. Seleção, Diligências com Datas e Análise")
+        st.markdown("### 2. Seleção, Diligências e Análise")
 
         alerta_selecionado = st.selectbox(
             "Selecione o alerta para revisar e emitir:", df["ID_Alerta"].tolist()
@@ -192,6 +191,15 @@ if uploaded_file is not None:
         regra_lista = linha.get("Lista", "")
         obs_complemento = linha.get("Complemento", "")
         op_destino = nome_contraparte
+
+        # Dicionário de Justificativas Dinâmicas Pré-Prontas
+        modelos_justificativas = {
+            "Arquivado - Sem Indício de Irregularidade": f"Análise realizada sobre o apontamento na lista '{regra_lista}'. Consultas efetuadas nas fontes abertas e bases públicas não identificaram risco iminente de PLD-FT ou atipicidade financeira.",
+            "Arquivado - Falso Positivo / Homônimo": f"Análise efetuada indica tratar-se de Falso Positivo / Homônimo. Os dados cadastrais do pesquisado não coincidem com o indivíduo/entidade registrado na lista restritiva '{regra_lista}'.",
+            "Encaminhado para Comunicação (COAF)": f"Constatados indícios de atipicidade e divergência cadastral incompatíveis com a capacidade financeira. Processo encaminhado ao Comitê para deliberação de Comunicação de Atipicidade ao COAF.",
+            "Em Monitoramento Contínuo": f"O cliente/contraparte permanece sob monitoramento contínuo reforçado para verificação de novas transações e eventual evolução dos apontamentos na lista '{regra_lista}'.",
+            "Outro (Especifique na Justificativa)": "",
+        }
 
         with st.expander(
             "📝 Detalhes da Planilha, Diligências e Decisão Manual",
@@ -235,16 +243,16 @@ if uploaded_file is not None:
                     "Data da Análise", datetime.date.today()
                 ).strftime("%d/%m/%Y")
 
-                # OPÇÕES MANUAIS DE DECISÃO RESTAURADAS
+                # CLASSIFICAÇÃO DE RISCO DO CLIENTE (NOVO CAMPO)
+                risco_cliente = st.selectbox(
+                    "Classificação de Risco do Cliente:",
+                    ["Baixo", "Médio", "Alto", "Não Classificado"],
+                    index=0,
+                )
+
                 decisao_arquivamento = st.selectbox(
                     "6. Decisão de Arquivamento / Conclusão:",
-                    [
-                        "Arquivado - Sem Indício de Irregularidade",
-                        "Arquivado - Falso Positivo / Homônimo",
-                        "Encaminhado para Comunicação (COAF)",
-                        "Em Monitoramento Contínuo",
-                        "Outro (Especifique na Justificativa)",
-                    ],
+                    list(modelos_justificativas.keys()),
                 )
 
                 st.markdown("---")
@@ -275,10 +283,16 @@ if uploaded_file is not None:
                         datas_diligencias[dil] = d_data.strftime("%d/%m/%Y")
 
                 st.markdown("---")
+
+                # Texto Padrão com base na decisão selecionada
+                texto_padrao = modelos_justificativas.get(
+                    decisao_arquivamento, ""
+                )
+
                 justificativa = st.text_area(
-                    "Justificativa da Decisão:",
-                    value=f"Análise realizada sobre o apontamento na lista '{regra_lista}'. Consultas em fontes abertas não identificaram risco iminente de PLD-FT.",
-                    height=100,
+                    "Justificativa da Decisão (Editável):",
+                    value=texto_padrao,
+                    height=120,
                 )
 
         st.markdown("---")
@@ -287,13 +301,13 @@ if uploaded_file is not None:
         if st.button("🚀 Gerar Dossiê Word (.docx)"):
             doc = Document("modelo_dossie.docx")
 
-            # 1. Primeiro insere as linhas reais na tabela de diligências
+            # 1. Preenche a tabela de diligências com linhas dinâmicas
             if diligencias_opcoes:
                 preencher_tabela_diligencias(
                     doc, diligencias_opcoes, datas_diligencias
                 )
 
-            # 2. Dicionário com todas as substituições do documento
+            # 2. Mapeamento de todas as tags do Word
             dicionario_dados = {
                 "{{CODIGO_DOSSIE}}": linha.get("CODIGO_DOSSIE", ""),
                 "{{NUM_ALERTA}}": linha.get("CODIGO_DOSSIE", ""),
@@ -310,6 +324,7 @@ if uploaded_file is not None:
                 "{{OPERAÇÃO_DESTINO}}": op_destino,
                 "{{OPERAÇÃO_DATA}}": op_data,
                 "{{OPERAÇÃO_VALOR}}": op_valor,
+                "{{RISCO_CLIENTE}}": risco_cliente,  # Tag nova de Risco
                 "{{ANALISTA}}": analista,
                 "{{DATA_ANALISE}}": data_analise,
                 "{{STATUS_ALERTA}}": decisao_arquivamento,
