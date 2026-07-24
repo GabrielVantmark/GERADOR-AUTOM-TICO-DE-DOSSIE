@@ -46,11 +46,37 @@ else:
         }
     """
 
-# 2. Injeção de CSS para Estilização Dark Premium / Neutra
+# 2. Injeção de CSS com a Fonte Big Shoulders para os Títulos
 st.markdown(
     f"""
     <style>
+    /* Importação da fonte Big Shoulders direto do Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Big+Shoulders:opsz,wght@10..72,100..900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
     {bg_css}
+
+    /* Aplica a fonte Big Shoulders nos Títulos Principais */
+    h1 {{
+        font-family: 'Big Shoulders', sans-serif !important;
+        font-weight: 800 !important;
+        font-size: 2.8rem !important;
+        letter-spacing: 1px !important;
+        text-transform: uppercase;
+        color: #FFFFFF !important;
+    }}
+
+    /* Subtítulos com destaque */
+    h2, h3, h4 {{
+        font-family: 'Big Shoulders', sans-serif !important;
+        letter-spacing: 0.8px !important;
+        color: #F4F4F5 !important;
+    }}
+
+    /* Corpo do texto e inputs usam Inter para manter excelente leitura */
+    body, label, .stMarkdown, .stTabs [data-baseweb="tab"] {{
+        font-family: 'Inter', sans-serif !important;
+    }}
 
     /* Container Principal */
     .block-container {{
@@ -61,7 +87,7 @@ st.markdown(
         max-width: 95% !important;
     }}
 
-    /* Estilização das Abas - Dark Neutro com Blur */
+    /* Estilização das Abas */
     .stTabs [data-baseweb="tab-list"] {{
         gap: 8px;
         background-color: rgba(18, 18, 18, 0.65);
@@ -83,7 +109,6 @@ st.markdown(
         border: none !important;
     }}
 
-    /* Realce Escuro / Preto para a Aba Selecionada */
     .stTabs [aria-selected="true"] {{
         background-color: #18181B !important;
         color: #FFFFFF !important;
@@ -91,7 +116,7 @@ st.markdown(
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
     }}
 
-    /* Estilização das Caixas de Texto / Inputs */
+    /* Inputs e Caixas de Seleção */
     .stTextInput>div>div>input, .stSelectbox>div>div>div, .stTextArea>div>div>textarea {{
         background-color: rgba(15, 15, 18, 0.85) !important;
         color: #F4F4F5 !important;
@@ -99,19 +124,15 @@ st.markdown(
         border-radius: 8px !important;
     }}
 
-    /* Foco nas Caixas de Texto */
-    .stTextInput>div>div>input:focus, .stSelectbox>div>div>div:focus, .stTextArea>div>div>textarea:focus {{
-        border-color: rgba(255, 255, 255, 0.4) !important;
-        box-shadow: 0 0 8px rgba(255, 255, 255, 0.15) !important;
-    }}
-
-    /* Botão Principal Escuro / Dark Obsidian */
+    /* Botão Principal Escuro */
     .stButton>button {{
         width: 100%;
         background: linear-gradient(180deg, #27272A 0%, #09090B 100%);
         color: #FFFFFF;
-        font-weight: 700;
-        font-size: 1.05rem;
+        font-family: 'Big Shoulders', sans-serif !important;
+        font-weight: 800;
+        font-size: 1.2rem;
+        letter-spacing: 1px;
         border-radius: 8px;
         padding: 0.8rem 1.5rem;
         border: 1px solid rgba(255, 255, 255, 0.2);
@@ -124,11 +145,6 @@ st.markdown(
         border-color: rgba(255, 255, 255, 0.4);
         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8);
         transform: translateY(-1px);
-    }}
-
-    /* Títulos e Rótulos */
-    h1, h2, h3, h4, h5, label, .stMarkdown {{
-        color: #F4F4F5 !important;
     }}
     </style>
     """,
