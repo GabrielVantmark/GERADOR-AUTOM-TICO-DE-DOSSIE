@@ -16,14 +16,13 @@ st.set_page_config(
 )
 
 
-# Função para converter imagem local para base64 (para usar no CSS do fundo)
+# Função para converter imagem local para base64
 def get_base64_of_bin_file(bin_file):
     with open(bin_file, "rb") as f:
         data = f.read()
     return base64.b64encode(data).decode()
 
 
-# Nome do arquivo de imagem enviado por você
 NOME_IMAGEM_FUNDO = (
     "abstract-metallic-wave-texture-with-glossy-reflective-surface-dark-lighting.jpg"
 )
@@ -33,7 +32,7 @@ if os.path.exists(NOME_IMAGEM_FUNDO):
     bin_str = get_base64_of_bin_file(NOME_IMAGEM_FUNDO)
     bg_css = f"""
         .stApp {{
-            background: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.92)),
+            background: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.55)),
                         url("data:image/jpeg;base64,{bin_str}") no-repeat center center fixed;
             background-size: cover;
         }}
@@ -41,11 +40,11 @@ if os.path.exists(NOME_IMAGEM_FUNDO):
 else:
     bg_css = """
         .stApp {
-            background-color: #0f172a;
+            background-color: #09090b;
         }
     """
 
-# 2. Injeção de CSS para Estilização Dark / Premium / Glassmorphism
+# 2. Injeção de CSS para Estilização Dark / Neutra / Realce Escuro (Sem Azul)
 st.markdown(
     f"""
     <style>
@@ -60,63 +59,74 @@ st.markdown(
         max-width: 95% !important;
     }}
 
-    /* Estilização das Abas */
+    /* Estilização das Abas - Dark Neutro */
     .stTabs [data-baseweb="tab-list"] {{
-        gap: 12px;
-        background-color: rgba(30, 41, 59, 0.7);
-        padding: 8px;
-        border-radius: 12px;
-        backdrop-filter: blur(10px);
+        gap: 8px;
+        background-color: rgba(18, 18, 18, 0.65);
+        padding: 6px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(12px);
     }}
 
     .stTabs [data-baseweb="tab"] {{
-        height: 50px;
+        height: 46px;
         white-space: pre-wrap;
         background-color: transparent;
-        border-radius: 8px;
-        color: #94A3B8;
+        border-radius: 6px;
+        color: #A1A1AA;
         font-weight: 600;
-        font-size: 1rem;
-        padding: 0 20px;
+        font-size: 0.95rem;
+        padding: 0 18px;
+        border: none !important;
     }}
 
+    /* Realce Escuro / Preto para a Aba Selecionada */
     .stTabs [aria-selected="true"] {{
-        background-color: #2563EB !important;
+        background-color: #18181B !important;
         color: #FFFFFF !important;
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     }}
 
-    /* Estilização das Caixas de Texto / Inputs */
+    /* Estilização das Caixas de Texto / Inputs em Preto Semitransparente */
     .stTextInput>div>div>input, .stSelectbox>div>div>div, .stTextArea>div>div>textarea {{
-        background-color: rgba(15, 23, 42, 0.7) !important;
-        color: #F8FAFC !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        background-color: rgba(10, 10, 12, 0.75) !important;
+        color: #F4F4F5 !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
         border-radius: 8px !important;
     }}
 
-    /* Botão Principal */
+    /* Foco nas Caixas de Texto - Borda Clara Neutra */
+    .stTextInput>div>div>input:focus, .stSelectbox>div>div>div:focus, .stTextArea>div>div>textarea:focus {{
+        border-color: rgba(255, 255, 255, 0.4) !important;
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.1) !important;
+    }}
+
+    /* Botão Principal Escuro / Dark Obsidian */
     .stButton>button {{
         width: 100%;
-        background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
-        color: white;
+        background: linear-gradient(180deg, #27272A 0%, #09090B 100%);
+        color: #FFFFFF;
         font-weight: 700;
-        font-size: 1.1rem;
-        border-radius: 10px;
+        font-size: 1.05rem;
+        border-radius: 8px;
         padding: 0.8rem 1.5rem;
-        border: none;
-        box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
-        transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+        transition: all 0.2s ease;
     }}
 
     .stButton>button:hover {{
-        background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%);
-        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6);
-        transform: translateY(-2px);
+        background: linear-gradient(180deg, #3F3F46 0%, #18181B 100%);
+        border-color: rgba(255, 255, 255, 0.4);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8);
+        transform: translateY(-1px);
     }}
 
-    /* Títulos e Textos */
+    /* Títulos e Rótulos */
     h1, h2, h3, h4, h5, label, .stMarkdown {{
-        color: #F8FAFC !important;
+        color: #F4F4F5 !important;
     }}
     </style>
     """,
@@ -280,7 +290,7 @@ with tab1:
         except Exception as e:
             st.error(f"Erro ao ler/processar a planilha: {e}")
 
-# Se o arquivo já foi carregado, processa os dados nas outras abas:
+# Processamento dos dados nas outras abas
 if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
     df = st.session_state["df_pld"]
     alerta_selecionado = st.session_state["alerta_selecionado"]
