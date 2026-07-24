@@ -214,7 +214,7 @@ def substituir_texto(doc_obj, mapa_substituicao):
 col_logo, col_titulo = st.columns([1.2, 5], vertical_alignment="center")
 with col_logo:
     if os.path.exists("noBgWhite.png"):
-        st.image("noBgWhite.png", width=180)
+        st.image("noBgWhite.png", width=220)
     else:
         st.write("🛡️")
 
