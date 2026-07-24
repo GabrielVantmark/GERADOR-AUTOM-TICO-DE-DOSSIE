@@ -36,11 +36,11 @@ bin_str = get_base64_background(NOME_IMAGEM_FUNDO)
 if bin_str:
     bg_css = f"""
         .stApp {{
-            background: linear-gradient(rgba(9, 9, 11, 0.70), rgba(9, 9, 11, 0.70)),
+            background: linear-gradient(rgba(9, 9, 11, 0.85), rgba(9, 9, 11, 0.85)),
                         url("data:image/jpeg;base64,{bin_str}") no-repeat center center fixed !important;
             background-size: cover !important;
-            backdrop-filter: blur(8px) !important;
-            -webkit-backdrop-filter: blur(8px) !important;
+            backdrop-filter: blur(11px) !important;
+            -webkit-backdrop-filter: blur(11px) !important;
         }}
     """
 else:
@@ -50,7 +50,7 @@ else:
         }
     """
 
-# 2. Injeção de CSS com a Fonte Bricolage Grotesque e Inter
+# 2. Injeção de CSS com a Fonte Bricolage Grotesque e Fixação Dark Mode
 st.markdown(
     f"""
     <style>
@@ -58,6 +58,11 @@ st.markdown(
     @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Inter:wght@400;600;700&display=swap');
 
     {bg_css}
+
+    /* FORÇAR CORES ESCURAS NO CONTAINER E TEXTOS GERAIS */
+    .stApp, .block-container {{
+        color: #F4F4F5 !important;
+    }}
 
     /* Títulos Principais - Bricolage Grotesque */
     h1 {{
@@ -70,18 +75,15 @@ st.markdown(
         color: #FFFFFF !important;
     }}
 
-    /* Subtítulos */
-    h2, h3, h4 {{
+    /* Subtítulos e Rótulos */
+    h2, h3, h4, label, .stMarkdown, p, span {{
         font-family: 'Bricolage Grotesque', sans-serif !important;
-        font-optical-sizing: auto;
-        font-weight: 700 !important;
-        font-variation-settings: "wdth" 100;
         color: #F4F4F5 !important;
     }}
 
-    /* Corpo do texto, formulários e rótulos */
-    body, label, .stMarkdown {{
-        font-family: 'Inter', sans-serif !important;
+    /* Legendas / Captions */
+    .stCaption, small {{
+        color: #A1A1AA !important;
     }}
 
     /* Container Principal */
@@ -93,13 +95,35 @@ st.markdown(
         max-width: 95% !important;
     }}
 
+    /* CAIXA DE UPLOAD (File Uploader) - CORREÇÃO MODO CLARO */
+    [data-testid="stFileUploader"] {{
+        background-color: rgba(24, 24, 27, 0.85) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border-radius: 10px !important;
+        padding: 1rem !important;
+    }}
+
+    [data-testid="stFileUploader"] section {{
+        background-color: transparent !important;
+    }}
+
+    [data-testid="stFileUploader"] span, [data-testid="stFileUploader"] small, [data-testid="stFileUploader"] div {{
+        color: #F4F4F5 !important;
+    }}
+
+    [data-testid="stFileUploader"] button {{
+        background-color: #27272A !important;
+        color: #FFFFFF !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    }}
+
     /* Estilização das Abas */
     .stTabs [data-baseweb="tab-list"] {{
         gap: 8px;
-        background-color: rgba(18, 18, 18, 0.65);
+        background-color: rgba(18, 18, 18, 0.75);
         padding: 6px;
         border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.15);
         backdrop-filter: blur(12px);
     }}
 
@@ -108,7 +132,7 @@ st.markdown(
         white-space: pre-wrap;
         background-color: transparent;
         border-radius: 6px;
-        color: #A1A1AA;
+        color: #A1A1AA !important;
         font-family: 'Bricolage Grotesque', sans-serif !important;
         font-weight: 600;
         font-size: 1rem;
@@ -119,15 +143,15 @@ st.markdown(
     .stTabs [aria-selected="true"] {{
         background-color: #18181B !important;
         color: #FFFFFF !important;
-        border: 1px solid rgba(255, 255, 255, 0.25) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
     }}
 
     /* Inputs e Caixas de Seleção */
     .stTextInput>div>div>input, .stSelectbox>div>div>div, .stTextArea>div>div>textarea {{
-        background-color: rgba(15, 15, 18, 0.85) !important;
-        color: #F4F4F5 !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        background-color: rgba(15, 15, 18, 0.9) !important;
+        color: #FFFFFF !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
         border-radius: 8px !important;
         font-family: 'Inter', sans-serif !important;
     }}
@@ -136,21 +160,21 @@ st.markdown(
     .stButton>button {{
         width: 100%;
         background: linear-gradient(180deg, #27272A 0%, #09090B 100%);
-        color: #FFFFFF;
+        color: #FFFFFF !important;
         font-family: 'Bricolage Grotesque', sans-serif !important;
         font-weight: 700;
         font-size: 1.15rem;
         letter-spacing: 0.5px;
         border-radius: 8px;
         padding: 0.8rem 1.5rem;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.25);
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
         transition: all 0.2s ease;
     }}
 
     .stButton>button:hover {{
         background: linear-gradient(180deg, #3F3F46 0%, #18181B 100%);
-        border-color: rgba(255, 255, 255, 0.4);
+        border-color: rgba(255, 255, 255, 0.5);
         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8);
         transform: translateY(-1px);
     }}
@@ -444,7 +468,9 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
             f"Alerta Selecionado: **{linha.get('CODIGO_DOSSIE')}** | Contraparte: **{nome_contraparte}**"
         )
 
-        st.markdown("Clique no botão abaixo para gerar e baixar o documento Word formatado:")
+        st.markdown(
+            "Clique no botão abaixo para gerar e baixar o documento Word formatado:"
+        )
 
         if st.button("🚀 Gerar Dossiê Oficial Word (.docx)"):
             doc = Document("modelo_dossie.docx")
@@ -508,7 +534,9 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
             doc.save(buffer)
             buffer.seek(0)
 
-            st.success("✅ Dossiê gerado com sucesso! Clique no botão abaixo para baixar:")
+            st.success(
+                "✅ Dossiê gerado com sucesso! Clique no botão abaixo para baixar:"
+            )
             st.download_button(
                 label=f"📥 Baixar Dossiê - {nome_arquivo}",
                 data=buffer,
@@ -517,6 +545,8 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
             )
 else:
     with tab2:
-        st.warning("⚠️ Faça o upload da planilha na **Aba 1** para habilitar a análise.")
+        st.warning(
+            "⚠️ Faça o upload da planilha na **Aba 1** para habilitar a análise."
+        )
     with tab3:
         st.warning("⚠️ Nenhum alerta carregado para emissão.")
