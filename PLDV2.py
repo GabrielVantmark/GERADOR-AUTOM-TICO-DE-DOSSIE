@@ -5,6 +5,7 @@ import os
 import re
 from docx import Document
 import pandas as pd
+from PIL import Image
 import streamlit as st
 
 # 1. Configuração da página
@@ -16,13 +17,25 @@ st.set_page_config(
 )
 
 
-# OTIMIZAÇÃO DE DESEMPENHO: Cache para leitura e conversão de imagens em Base64
+# OTIMIZAÇÃO DE DESEMPENHO E COMPRESSÃO DE IMAGEM
 @st.cache_data
-def get_base64_background(bin_file):
+def get_optimized_base64_background(bin_file):
     if os.path.exists(bin_file):
-        with open(bin_file, "rb") as f:
-            data = f.read()
-        return base64.b64encode(data).decode()
+        try:
+            # Abre e otimiza a imagem em memória para não pesá-la no navegador
+            img = Image.open(bin_file)
+            img.thumbnail((1920, 1080))  # Redimensiona para Full HD máx
+
+            buffer = io.BytesIO()
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+
+            img.save(buffer, format="JPEG", quality=75, optimize=True)
+            return base64.b64encode(buffer.getvalue()).decode()
+        except Exception:
+            with open(bin_file, "rb") as f:
+                data = f.read()
+            return base64.b64encode(data).decode()
     return None
 
 
@@ -30,13 +43,13 @@ NOME_IMAGEM_FUNDO = (
     "abstract-metallic-wave-texture-with-glossy-reflective-surface-dark-lighting.jpg"
 )
 
-# Carrega a imagem do fundo usando o cache
-bin_str = get_base64_background(NOME_IMAGEM_FUNDO)
+# Carrega a imagem do fundo otimizada via cache
+bin_str = get_optimized_base64_background(NOME_IMAGEM_FUNDO)
 
 if bin_str:
     bg_css = f"""
         .stApp {{
-            background: linear-gradient(rgba(9, 9, 11, 0.85), rgba(9, 9, 11, 0.85)),
+            background: linear-gradient(rgba(9, 9, 11, 0.80), rgba(9, 9, 11, 0.80)),
                         url("data:image/jpeg;base64,{bin_str}") no-repeat center center fixed !important;
             background-size: cover !important;
             backdrop-filter: blur(11px) !important;
@@ -50,21 +63,21 @@ else:
         }
     """
 
-# 2. Injeção de CSS com a Fonte Bricolage Grotesque e Fixação Dark Mode
+# 2. Injeção de CSS Corrigido (Sem duplicação no botão de upload)
 st.markdown(
     f"""
     <style>
-    /* Importação da Bricolage Grotesque e Inter */
+    /* Importação das fontes Bricolage Grotesque e Inter */
     @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Inter:wght@400;600;700&display=swap');
 
     {bg_css}
 
-    /* FORÇAR CORES ESCURAS NO CONTAINER E TEXTOS GERAIS */
+    /* FORÇAR BASE ESCURA E TEXTOS CLAROS */
     .stApp, .block-container {{
         color: #F4F4F5 !important;
     }}
 
-    /* Títulos Principais - Bricolage Grotesque */
+    /* Títulos Principais */
     h1 {{
         font-family: 'Bricolage Grotesque', sans-serif !important;
         font-optical-sizing: auto;
@@ -81,7 +94,6 @@ st.markdown(
         color: #F4F4F5 !important;
     }}
 
-    /* Legendas / Captions */
     .stCaption, small {{
         color: #A1A1AA !important;
     }}
@@ -95,7 +107,7 @@ st.markdown(
         max-width: 95% !important;
     }}
 
-    /* CAIXA DE UPLOAD (File Uploader) - CORREÇÃO MODO CLARO */
+    /* CAIXA DE UPLOAD (FILE UPLOADER CORRIGIDO) */
     [data-testid="stFileUploader"] {{
         background-color: rgba(24, 24, 27, 0.85) !important;
         border: 1px solid rgba(255, 255, 255, 0.2) !important;
@@ -103,18 +115,9 @@ st.markdown(
         padding: 1rem !important;
     }}
 
-    [data-testid="stFileUploader"] section {{
+    [data-testid="stFileUploaderDropzone"] {{
         background-color: transparent !important;
-    }}
-
-    [data-testid="stFileUploader"] span, [data-testid="stFileUploader"] small, [data-testid="stFileUploader"] div {{
-        color: #F4F4F5 !important;
-    }}
-
-    [data-testid="stFileUploader"] button {{
-        background-color: #27272A !important;
-        color: #FFFFFF !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border: none !important;
     }}
 
     /* Estilização das Abas */
@@ -147,7 +150,7 @@ st.markdown(
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
     }}
 
-    /* Inputs e Caixas de Seleção */
+    /* Inputs e Selectbox */
     .stTextInput>div>div>input, .stSelectbox>div>div>div, .stTextArea>div>div>textarea {{
         background-color: rgba(15, 15, 18, 0.9) !important;
         color: #FFFFFF !important;
@@ -156,7 +159,7 @@ st.markdown(
         font-family: 'Inter', sans-serif !important;
     }}
 
-    /* Botão Principal Escuro */
+    /* Botão Ação Principal */
     .stButton>button {{
         width: 100%;
         background: linear-gradient(180deg, #27272A 0%, #09090B 100%);
@@ -265,7 +268,7 @@ def substituir_texto(doc_obj, mapa_substituicao):
 col_logo, col_titulo = st.columns([1.2, 5], vertical_alignment="center")
 with col_logo:
     if os.path.exists("noBgWhite.png"):
-        st.image("noBgWhite.png", width=180)
+        st.image("noBgWhite.png", width=220)
     else:
         st.write("🛡️")
 
@@ -288,7 +291,7 @@ tab1, tab2, tab3 = st.tabs(
 
 # --- ABA 1: UPLOAD & SELEÇÃO ---
 with tab1:
-    st.markdown("### 1. Upload da Planilha de Retaguarda")
+    st.markdown("### 1. Upload da Planilha de Ocorrências")
     uploaded_file = st.file_uploader(
         "Arraste e solte a base de detectados (.xlsx ou .csv):",
         type=["xlsx", "xls", "csv"],
