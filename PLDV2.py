@@ -32,11 +32,11 @@ if os.path.exists(NOME_IMAGEM_FUNDO):
     bin_str = get_base64_of_bin_file(NOME_IMAGEM_FUNDO)
     bg_css = f"""
         .stApp {{
-            background: linear-gradient(rgba(9, 9, 11, 0.70), rgba(9, 9, 11, 0.70)),
+            background: linear-gradient(rgba(9, 9, 11, 0.80), rgba(9, 9, 11, 0.80)),
                         url("data:image/jpeg;base64,{bin_str}") no-repeat center center fixed !important;
             background-size: cover !important;
-            backdrop-filter: blur(8px) !important;
-            -webkit-backdrop-filter: blur(8px) !important;
+            backdrop-filter: blur(10px) !important;
+            -webkit-backdrop-filter: blur(10px) !important;
         }}
     """
 else:
@@ -233,7 +233,7 @@ def substituir_texto(doc_obj, mapa_substituicao):
 col_logo, col_titulo = st.columns([1.2, 5], vertical_alignment="center")
 with col_logo:
     if os.path.exists("noBgWhite.png"):
-        st.image("noBgWhite.png", width=180)
+        st.image("noBgWhite.png", width=230)
     else:
         st.write("🛡️")
 
