@@ -1,8 +1,8 @@
+import base64
 import datetime
 import io
-import re
 import os
-import base64
+import re
 from docx import Document
 import pandas as pd
 import streamlit as st
@@ -16,7 +16,6 @@ st.set_page_config(
 )
 
 
-# Função para converter imagem local para base64
 def get_base64_of_bin_file(bin_file):
     with open(bin_file, "rb") as f:
         data = f.read()
@@ -32,11 +31,11 @@ if os.path.exists(NOME_IMAGEM_FUNDO):
     bin_str = get_base64_of_bin_file(NOME_IMAGEM_FUNDO)
     bg_css = f"""
         .stApp {{
-            background: linear-gradient(rgba(9, 9, 11, 0.80), rgba(9, 9, 11, 0.80)),
+            background: linear-gradient(rgba(9, 9, 11, 0.70), rgba(9, 9, 11, 0.70)),
                         url("data:image/jpeg;base64,{bin_str}") no-repeat center center fixed !important;
             background-size: cover !important;
-            backdrop-filter: blur(10px) !important;
-            -webkit-backdrop-filter: blur(10px) !important;
+            backdrop-filter: blur(8px) !important;
+            -webkit-backdrop-filter: blur(8px) !important;
         }}
     """
 else:
@@ -46,35 +45,37 @@ else:
         }
     """
 
-# 2. Injeção de CSS com a Fonte Big Shoulders para os Títulos
+# 2. Injeção de CSS com a Fonte Bricolage Grotesque
 st.markdown(
     f"""
     <style>
-    /* Importação da fonte Big Shoulders direto do Google Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Big+Shoulders:opsz,wght@10..72,100..900&display=swap');
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    /* Importação da Bricolage Grotesque e Inter */
+    @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Inter:wght@400;600;700&display=swap');
 
     {bg_css}
 
-    /* Aplica a fonte Big Shoulders nos Títulos Principais */
+    /* Aplica a Bricolage Grotesque nos Títulos Principais */
     h1 {{
-        font-family: 'Big Shoulders', sans-serif !important;
+        font-family: 'Bricolage Grotesque', sans-serif !important;
+        font-optical-sizing: auto;
         font-weight: 800 !important;
-        font-size: 2.8rem !important;
-        letter-spacing: 1px !important;
-        text-transform: uppercase;
+        font-variation-settings: "wdth" 100;
+        font-size: 2.6rem !important;
+        letter-spacing: -0.5px !important;
         color: #FFFFFF !important;
     }}
 
-    /* Subtítulos com destaque */
+    /* Subtítulos */
     h2, h3, h4 {{
-        font-family: 'Big Shoulders', sans-serif !important;
-        letter-spacing: 0.8px !important;
+        font-family: 'Bricolage Grotesque', sans-serif !important;
+        font-optical-sizing: auto;
+        font-weight: 700 !important;
+        font-variation-settings: "wdth" 100;
         color: #F4F4F5 !important;
     }}
 
-    /* Corpo do texto e inputs usam Inter para manter excelente leitura */
-    body, label, .stMarkdown, .stTabs [data-baseweb="tab"] {{
+    /* Corpo do texto, formulários e rótulos */
+    body, label, .stMarkdown {{
         font-family: 'Inter', sans-serif !important;
     }}
 
@@ -103,8 +104,9 @@ st.markdown(
         background-color: transparent;
         border-radius: 6px;
         color: #A1A1AA;
+        font-family: 'Bricolage Grotesque', sans-serif !important;
         font-weight: 600;
-        font-size: 0.95rem;
+        font-size: 1rem;
         padding: 0 18px;
         border: none !important;
     }}
@@ -122,6 +124,7 @@ st.markdown(
         color: #F4F4F5 !important;
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
         border-radius: 8px !important;
+        font-family: 'Inter', sans-serif !important;
     }}
 
     /* Botão Principal Escuro */
@@ -129,10 +132,10 @@ st.markdown(
         width: 100%;
         background: linear-gradient(180deg, #27272A 0%, #09090B 100%);
         color: #FFFFFF;
-        font-family: 'Big Shoulders', sans-serif !important;
-        font-weight: 800;
-        font-size: 1.2rem;
-        letter-spacing: 1px;
+        font-family: 'Bricolage Grotesque', sans-serif !important;
+        font-weight: 700;
+        font-size: 1.15rem;
+        letter-spacing: 0.5px;
         border-radius: 8px;
         padding: 0.8rem 1.5rem;
         border: 1px solid rgba(255, 255, 255, 0.2);
@@ -233,7 +236,7 @@ def substituir_texto(doc_obj, mapa_substituicao):
 col_logo, col_titulo = st.columns([1.2, 5], vertical_alignment="center")
 with col_logo:
     if os.path.exists("noBgWhite.png"):
-        st.image("noBgWhite.png", width=230)
+        st.image("noBgWhite.png", width=180)
     else:
         st.write("🛡️")
 
@@ -445,10 +448,8 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                 preencher_tabela_diligencias(
                     doc, lista_final_diligencias, datas_diligencias
                 )
-# Define a data atual por extenso para o cabeçalho (ex: "São Paulo, 24 de julho de 2026")
-            # Ou se preferir apenas em formato DD/MM/AAAA:
-            # data_hoje_extenso = datetime.date.today().strftime("%d/%m/%Y")
 
+            # Data de elaboração por extenso para o cabeçalho
             meses = [
                 "janeiro",
                 "fevereiro",
