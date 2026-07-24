@@ -16,26 +16,31 @@ st.set_page_config(
 )
 
 
-def get_base64_of_bin_file(bin_file):
-    with open(bin_file, "rb") as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
+# OTIMIZAÇÃO DE DESEMPENHO: Cache para leitura e conversão de imagens em Base64
+@st.cache_data
+def get_base64_background(bin_file):
+    if os.path.exists(bin_file):
+        with open(bin_file, "rb") as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    return None
 
 
 NOME_IMAGEM_FUNDO = (
     "abstract-metallic-wave-texture-with-glossy-reflective-surface-dark-lighting.jpg"
 )
 
-bg_css = ""
-if os.path.exists(NOME_IMAGEM_FUNDO):
-    bin_str = get_base64_of_bin_file(NOME_IMAGEM_FUNDO)
+# Carrega a imagem do fundo usando o cache
+bin_str = get_base64_background(NOME_IMAGEM_FUNDO)
+
+if bin_str:
     bg_css = f"""
         .stApp {{
-            background: linear-gradient(rgba(9, 9, 11, 0.80), rgba(9, 9, 11, 0.80)),
+            background: linear-gradient(rgba(9, 9, 11, 0.70), rgba(9, 9, 11, 0.70)),
                         url("data:image/jpeg;base64,{bin_str}") no-repeat center center fixed !important;
             background-size: cover !important;
-            backdrop-filter: blur(11px) !important;
-            -webkit-backdrop-filter: blur(11px) !important;
+            backdrop-filter: blur(8px) !important;
+            -webkit-backdrop-filter: blur(8px) !important;
         }}
     """
 else:
@@ -45,7 +50,7 @@ else:
         }
     """
 
-# 2. Injeção de CSS com a Fonte Bricolage Grotesque
+# 2. Injeção de CSS com a Fonte Bricolage Grotesque e Inter
 st.markdown(
     f"""
     <style>
@@ -54,7 +59,7 @@ st.markdown(
 
     {bg_css}
 
-    /* Aplica a Bricolage Grotesque nos Títulos Principais */
+    /* Títulos Principais - Bricolage Grotesque */
     h1 {{
         font-family: 'Bricolage Grotesque', sans-serif !important;
         font-optical-sizing: auto;
@@ -236,7 +241,7 @@ def substituir_texto(doc_obj, mapa_substituicao):
 col_logo, col_titulo = st.columns([1.2, 5], vertical_alignment="center")
 with col_logo:
     if os.path.exists("noBgWhite.png"):
-        st.image("noBgWhite.png", width=220)
+        st.image("noBgWhite.png", width=180)
     else:
         st.write("🛡️")
 
