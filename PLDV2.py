@@ -3,6 +3,7 @@ import datetime
 import io
 import os
 import re
+import zipfile
 from docx import Document
 import pandas as pd
 from PIL import Image
@@ -52,7 +53,7 @@ bg_css = (
     else ".stApp { background-color: #09090b !important; }"
 )
 
-# 2. Injeção de CSS Cirúrgico (Sem interferir nos menus internos do Streamlit)
+# 2. CSS Cirúrgico
 st.markdown(
     f"""
     <style>
@@ -60,7 +61,6 @@ st.markdown(
 
     {bg_css}
 
-    /* Tipografia e Títulos Principais */
     .stApp h1 {{
         font-family: 'Bricolage Grotesque', sans-serif !important;
         font-weight: 800 !important;
@@ -73,7 +73,7 @@ st.markdown(
         color: #F4F4F5 !important;
     }}
 
-    /* Estilização ISOLADA da caixa de Upload (Sem quebrar os botões/textos internos) */
+    /* Isolamento da caixa de Upload */
     [data-testid="stFileUploader"] > div {{
         background-color: rgba(24, 24, 27, 0.85) !important;
         border: 1px dashed rgba(255, 255, 255, 0.3) !important;
@@ -108,7 +108,6 @@ st.markdown(
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
     }}
 
-    /* Inputs e Caixas de Texto */
     .stTextInput input, .stSelectbox select, .stTextArea textarea {{
         background-color: rgba(15, 15, 18, 0.9) !important;
         color: #FFFFFF !important;
@@ -117,7 +116,6 @@ st.markdown(
         font-family: 'Inter', sans-serif !important;
     }}
 
-    /* Botões Padrão das Ações */
     .stButton > button {{
         width: 100%;
         background: linear-gradient(180deg, #27272A 0%, #09090B 100%);
@@ -214,7 +212,7 @@ def substituir_texto(doc_obj, mapa_substituicao):
 col_logo, col_titulo = st.columns([1.2, 5], vertical_alignment="center")
 with col_logo:
     if os.path.exists("noBgWhite.png"):
-        st.image("noBgWhite.png", width=240)
+        st.image("noBgWhite.png", width=180)
     else:
         st.write("🛡️")
 
@@ -226,7 +224,6 @@ with col_titulo:
 
 st.markdown("---")
 
-# --- ORGANIZAÇÃO EM ABAS ---
 tab1, tab2, tab3 = st.tabs(
     [
         "📂 1. Carregamento & Alertas",
@@ -289,13 +286,12 @@ with tab1:
         except Exception as e:
             st.error(f"Erro ao ler/processar a planilha: {e}")
 
-# Processamento dos dados nas outras abas
+# Processamento
 if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
     df = st.session_state["df_pld"]
     alerta_selecionado = st.session_state["alerta_selecionado"]
     linha = df[df["ID_Alerta"] == alerta_selecionado].iloc[0]
 
-    # Mapeamento
     op_origem = linha.get("Nome do Cliente", "")
     op_data = formatar_data(linha.get("Data da Operação", ""))
     op_valor = formatar_moeda(linha.get("Valor da Operação", ""))
@@ -400,7 +396,6 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                     datas_diligencias[dil] = d_data.strftime("%d/%m/%Y")
 
             st.markdown("---")
-
             texto_padrao = modelos_justificativas.get(decisao_arquivamento, "")
 
             justificativa = st.text_area(
@@ -413,84 +408,208 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
     # --- ABA 3: EMISSÃO DO DOSSIÊ ---
     with tab3:
         st.markdown("### 📄 Emissão e Exportação do Relatório Oficial")
-        st.info(
-            f"Alerta Selecionado: **{linha.get('CODIGO_DOSSIE')}** | Contraparte: **{nome_contraparte}**"
-        )
 
-        st.markdown(
-            "Clique no botão abaixo para gerar e baixar o documento Word formatado:"
-        )
+        col_ind, col_lote = st.columns(2, gap="large")
 
-        if st.button("🚀 Gerar Dossiê Oficial Word (.docx)"):
-            doc = Document("modelo_dossie.docx")
+        # OPÇÃO 1: DOWNLOAD INDIVIDUAL
+        with col_ind:
+            st.markdown("#### 👤 Download do Dossiê Selecionado")
+            st.info(
+                f"**Alerta:** {linha.get('CODIGO_DOSSIE')}\n\n**Contraparte:** {nome_contraparte}"
+            )
 
-            if lista_final_diligencias:
-                preencher_tabela_diligencias(
-                    doc, lista_final_diligencias, datas_diligencias
+            if st.button("🚀 Gerar Dossiê do Alerta Atual"):
+                if os.path.exists("modelo_dossie.docx"):
+                    doc = Document("modelo_dossie.docx")
+                else:
+                    doc = Document()
+
+                if lista_final_diligencias:
+                    preencher_tabela_diligencias(
+                        doc, lista_final_diligencias, datas_diligencias
+                    )
+
+                meses = [
+                    "janeiro",
+                    "fevereiro",
+                    "março",
+                    "abril",
+                    "maio",
+                    "junho",
+                    "julho",
+                    "agosto",
+                    "setembro",
+                    "outubro",
+                    "novembro",
+                    "dezembro",
+                ]
+                hoje = datetime.date.today()
+                data_hoje_extenso = f"São Paulo, {hoje.day} de {meses[hoje.month - 1]} de {hoje.year}"
+
+                dicionario_dados = {
+                    "{{CODIGO_DOSSIE}}": linha.get("CODIGO_DOSSIE", ""),
+                    "{{NUM_ALERTA}}": linha.get("CODIGO_DOSSIE", ""),
+                    "{{SISTEMA}}": "Advice e-Guardian",
+                    "{{NORMATIVA}}": (
+                        "Lei nº 9.613/1998 e Resolução BCB nº 96/2021"
+                    ),
+                    "{{DATA_GERACAO}}": data_geracao,
+                    "{{DATA_ELABORACAO}}": data_hoje_extenso,
+                    "{{CPF_CNPJ}}": cpf_cnpj,
+                    "{{NOME_CONTRAPARTE}}": nome_contraparte,
+                    "{{REGRA}}": regra_lista,
+                    "{{TIPOLOGIA}}": regra_lista,
+                    "{{STATUS_IP}}": status_ip,
+                    "{{OBS_CONTRAPARTE}}": obs_complemento,
+                    "{{OPERAÇÃO_ORIGEM}}": op_origem,
+                    "{{OPERAÇÃO_DESTINO}}": op_destino,
+                    "{{OPERAÇÃO_DATA}}": op_data,
+                    "{{OPERAÇÃO_VALOR}}": op_valor,
+                    "{{RISCO_CLIENTE}}": risco_cliente,
+                    "{{ANALISTA}}": analista,
+                    "{{DATA_ANALISE}}": data_analise,
+                    "{{STATUS_ALERTA}}": decisao_arquivamento,
+                    "{{DECISAO}}": decisao_arquivamento,
+                    "{{JUSTIFICATIVA}}": justificativa,
+                }
+
+                substituir_texto(doc, dicionario_dados)
+
+                cod_dossie = linha.get("CODIGO_DOSSIE", "DOSSIE")
+                nome_arquivo = f"Dossiê PLD - {cod_dossie}.docx"
+
+                buffer = io.BytesIO()
+                doc.save(buffer)
+                buffer.seek(0)
+
+                st.download_button(
+                    label=f"📥 Baixar Dossiê (.docx)",
+                    data=buffer,
+                    file_name=nome_arquivo,
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 )
 
-            meses = [
-                "janeiro",
-                "fevereiro",
-                "março",
-                "abril",
-                "maio",
-                "junho",
-                "julho",
-                "agosto",
-                "setembro",
-                "outubro",
-                "novembro",
-                "dezembro",
-            ]
-            hoje = datetime.date.today()
-            data_hoje_extenso = (
-                f"São Paulo, {hoje.day} de {meses[hoje.month - 1]} de {hoje.year}"
+        # OPÇÃO 2: DOWNLOAD EM LOTE (.ZIP)
+        with col_lote:
+            st.markdown("#### 📦 Download em Lote (Todos os Alertas)")
+            st.warning(
+                f"Serão gerados **{len(df)} dossiês** em um arquivo compactado (.ZIP)."
             )
 
-            dicionario_dados = {
-                "{{CODIGO_DOSSIE}}": linha.get("CODIGO_DOSSIE", ""),
-                "{{NUM_ALERTA}}": linha.get("CODIGO_DOSSIE", ""),
-                "{{SISTEMA}}": "Advice e-Guardian",
-                "{{NORMATIVA}}": "Lei nº 9.613/1998 e Resolução BCB nº 96/2021",
-                "{{DATA_GERACAO}}": data_geracao,
-                "{{DATA_ELABORACAO}}": data_hoje_extenso,
-                "{{CPF_CNPJ}}": cpf_cnpj,
-                "{{NOME_CONTRAPARTE}}": nome_contraparte,
-                "{{REGRA}}": regra_lista,
-                "{{TIPOLOGIA}}": regra_lista,
-                "{{STATUS_IP}}": status_ip,
-                "{{OBS_CONTRAPARTE}}": obs_complemento,
-                "{{OPERAÇÃO_ORIGEM}}": op_origem,
-                "{{OPERAÇÃO_DESTINO}}": op_destino,
-                "{{OPERAÇÃO_DATA}}": op_data,
-                "{{OPERAÇÃO_VALOR}}": op_valor,
-                "{{RISCO_CLIENTE}}": risco_cliente,
-                "{{ANALISTA}}": analista,
-                "{{DATA_ANALISE}}": data_analise,
-                "{{STATUS_ALERTA}}": decisao_arquivamento,
-                "{{DECISAO}}": decisao_arquivamento,
-                "{{JUSTIFICATIVA}}": justificativa,
-            }
+            if st.button("⚡ Gerar Pacote em Lote (.ZIP)"):
+                with st.spinner("Gerando todos os dossiês em lote..."):
+                    zip_buffer = io.BytesIO()
 
-            substituir_texto(doc, dicionario_dados)
+                    with zipfile.ZipFile(
+                        zip_buffer, "w", zipfile.ZIP_DEFLATED
+                    ) as zip_file:
+                        meses = [
+                            "janeiro",
+                            "fevereiro",
+                            "março",
+                            "abril",
+                            "maio",
+                            "junho",
+                            "julho",
+                            "agosto",
+                            "setembro",
+                            "outubro",
+                            "novembro",
+                            "dezembro",
+                        ]
+                        hoje = datetime.date.today()
+                        data_hoje_extenso = f"São Paulo, {hoje.day} de {meses[hoje.month - 1]} de {hoje.year}"
 
-            cod_dossie = linha.get("CODIGO_DOSSIE", "DOSSIE")
-            nome_arquivo = f"Dossiê de alerta PLD-FT - ({cod_dossie}).docx"
+                        for idx, row in df.iterrows():
+                            if os.path.exists("modelo_dossie.docx"):
+                                doc_item = Document("modelo_dossie.docx")
+                            else:
+                                doc_item = Document()
 
-            buffer = io.BytesIO()
-            doc.save(buffer)
-            buffer.seek(0)
+                            cod = row.get("CODIGO_DOSSIE", f"DOS-{idx+1}")
+                            c_cpf = (
+                                "CPF/CNPJ Pesquisado"
+                                if "CPF/CNPJ Pesquisado" in df.columns
+                                else df.columns[6]
+                            )
+                            c_nome = (
+                                "Nome Encontrado"
+                                if "Nome Encontrado" in df.columns
+                                else df.columns[8]
+                            )
 
-            st.success(
-                "✅ Dossiê gerado com sucesso! Clique no botão abaixo para baixar:"
-            )
-            st.download_button(
-                label=f"📥 Baixar Dossiê - {nome_arquivo}",
-                data=buffer,
-                file_name=nome_arquivo,
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            )
+                            item_cpf = row.get(c_cpf, "")
+                            item_nome = row.get(c_nome, "")
+                            item_regra = row.get("Lista", "")
+                            item_dt_ger = formatar_data(
+                                row.get("Data da Detecção do Hit", "")
+                            )
+                            item_status = row.get("Parte Relacionada", "")
+                            item_obs = row.get("Complemento", "")
+                            item_op_origem = row.get("Nome do Cliente", "")
+                            item_op_data = formatar_data(
+                                row.get("Data da Operação", "")
+                            )
+                            item_op_val = formatar_moeda(
+                                row.get("Valor da Operação", "")
+                            )
+
+                            dic_item = {
+                                "{{CODIGO_DOSSIE}}": cod,
+                                "{{NUM_ALERTA}}": cod,
+                                "{{SISTEMA}}": "Advice e-Guardian",
+                                "{{NORMATIVA}}": (
+                                    "Lei nº 9.613/1998 e Resolução BCB nº"
+                                    " 96/2021"
+                                ),
+                                "{{DATA_GERACAO}}": item_dt_ger,
+                                "{{DATA_ELABORACAO}}": data_hoje_extenso,
+                                "{{CPF_CNPJ}}": item_cpf,
+                                "{{NOME_CONTRAPARTE}}": item_nome,
+                                "{{REGRA}}": item_regra,
+                                "{{TIPOLOGIA}}": item_regra,
+                                "{{STATUS_IP}}": item_status,
+                                "{{OBS_CONTRAPARTE}}": item_obs,
+                                "{{OPERAÇÃO_ORIGEM}}": item_op_origem,
+                                "{{OPERAÇÃO_DESTINO}}": item_nome,
+                                "{{OPERAÇÃO_DATA}}": item_op_data,
+                                "{{OPERAÇÃO_VALOR}}": item_op_val,
+                                "{{RISCO_CLIENTE}}": "Não Classificado",
+                                "{{ANALISTA}}": "Analista PLD",
+                                "{{DATA_ANALISE}}": hoje.strftime("%d/%m/%Y"),
+                                "{{STATUS_ALERTA}}": (
+                                    "Arquivado - Sem Indício de Irregularidade"
+                                ),
+                                "{{DECISAO}}": (
+                                    "Arquivado - Sem Indício de Irregularidade"
+                                ),
+                                "{{JUSTIFICATIVA}}": modelos_justificativas.get(
+                                    "Arquivado - Sem Indício de Irregularidade",
+                                    "",
+                                ),
+                            }
+
+                            substituir_texto(doc_item, dic_item)
+
+                            doc_buf = io.BytesIO()
+                            doc_item.save(doc_buf)
+                            doc_buf.seek(0)
+
+                            nome_limpo_contraparte = re.sub(
+                                r'[\\/*?:"<>|]', "", item_nome[:25].strip()
+                            )
+                            fname = f"Dossie_{cod}_{nome_limpo_contraparte}.docx"
+                            zip_file.writestr(fname, doc_buf.getvalue())
+
+                    zip_buffer.seek(0)
+                    nome_zip = f"Dossies_PLD_{datetime.date.today().strftime('%Y%m%d')}.zip"
+
+                    st.download_button(
+                        label=f"📥 Baixar Arquivo .ZIP ({len(df)} Dossiês)",
+                        data=zip_buffer,
+                        file_name=nome_zip,
+                        mime="application/zip",
+                    )
 else:
     with tab2:
         st.warning(
