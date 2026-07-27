@@ -18,7 +18,6 @@ st.set_page_config(
 )
 
 
-# Otimização da imagem de fundo
 @st.cache_data
 def get_optimized_base64_background(bin_file):
     if os.path.exists(bin_file):
@@ -53,76 +52,19 @@ bg_css = (
     else ".stApp { background-color: #09090b !important; }"
 )
 
-# 2. CSS Estilizado
 st.markdown(
     f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Inter:wght@400;600;700&display=swap');
-
     {bg_css}
-
-    .stApp h1 {{
-        font-family: 'Bricolage Grotesque', sans-serif !important;
-        font-weight: 800 !important;
-        font-size: 2.5rem !important;
-        color: #FFFFFF !important;
-    }}
-
-    .stApp h2, .stApp h3, .stApp h4, .stApp label, .stApp .stMarkdown p {{
-        font-family: 'Bricolage Grotesque', sans-serif !important;
-        color: #F4F4F5 !important;
-    }}
-
-    [data-testid="stFileUploader"] > div {{
-        background-color: rgba(24, 24, 27, 0.85) !important;
-        border: 1px dashed rgba(255, 255, 255, 0.3) !important;
-        border-radius: 12px !important;
-        padding: 1.5rem !important;
-    }}
-
-    .stTabs [data-baseweb="tab-list"] {{
-        gap: 8px;
-        background-color: rgba(18, 18, 18, 0.75);
-        padding: 6px;
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-    }}
-
-    .stTabs [data-baseweb="tab"] {{
-        height: 44px;
-        background-color: transparent;
-        border-radius: 6px;
-        color: #A1A1AA !important;
-        font-family: 'Bricolage Grotesque', sans-serif !important;
-        font-weight: 600;
-        font-size: 1rem;
-        padding: 0 16px;
-        border: none !important;
-    }}
-
-    .stTabs [aria-selected="true"] {{
-        background-color: #18181B !important;
-        color: #FFFFFF !important;
-        border: 1px solid rgba(255, 255, 255, 0.3) !important;
-    }}
-
-    .stTextInput input, .stSelectbox select, .stTextArea textarea {{
-        background-color: rgba(15, 15, 18, 0.9) !important;
-        color: #FFFFFF !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        border-radius: 8px !important;
-        font-family: 'Inter', sans-serif !important;
-    }}
-
-    .stButton > button {{
-        width: 100%;
-        background: linear-gradient(180deg, #27272A 0%, #09090B 100%);
-        color: #FFFFFF !important;
-        font-family: 'Bricolage Grotesque', sans-serif !important;
-        font-weight: 700;
-        border-radius: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.25);
-    }}
+    .stApp h1 {{ font-family: 'Bricolage Grotesque', sans-serif !important; font-weight: 800 !important; color: #FFFFFF !important; }}
+    .stApp h2, .stApp h3, .stApp h4, .stApp label, .stApp .stMarkdown p {{ font-family: 'Bricolage Grotesque', sans-serif !important; color: #F4F4F5 !important; }}
+    [data-testid="stFileUploader"] > div {{ background-color: rgba(24, 24, 27, 0.85) !important; border: 1px dashed rgba(255, 255, 255, 0.3) !important; border-radius: 12px !important; padding: 1.5rem !important; }}
+    .stTabs [data-baseweb="tab-list"] {{ gap: 8px; background-color: rgba(18, 18, 18, 0.75); padding: 6px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.15); }}
+    .stTabs [data-baseweb="tab"] {{ height: 44px; background-color: transparent; border-radius: 6px; color: #A1A1AA !important; font-family: 'Bricolage Grotesque', sans-serif !important; font-weight: 600; font-size: 1rem; padding: 0 16px; border: none !important; }}
+    .stTabs [aria-selected="true"] {{ background-color: #18181B !important; color: #FFFFFF !important; border: 1px solid rgba(255, 255, 255, 0.3) !important; }}
+    .stTextInput input, .stSelectbox select, .stTextArea textarea {{ background-color: rgba(15, 15, 18, 0.9) !important; color: #FFFFFF !important; border: 1px solid rgba(255, 255, 255, 0.2) !important; border-radius: 8px !important; font-family: 'Inter', sans-serif !important; }}
+    .stButton > button {{ width: 100%; background: linear-gradient(180deg, #27272A 0%, #09090B 100%); color: #FFFFFF !important; font-family: 'Bricolage Grotesque', sans-serif !important; font-weight: 700; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.25); }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -161,7 +103,6 @@ def formatar_moeda(valor):
 
 
 def preencher_tabela_diligencias(doc_obj, lista_diligencias, datas_diligencias):
-    """Insere as linhas na tabela de diligências e remove a linha template."""
     for table in doc_obj.tables:
         for row in table.rows:
             cell_texts = [c.text for c in row.cells]
@@ -176,14 +117,12 @@ def preencher_tabela_diligencias(doc_obj, lista_diligencias, datas_diligencias):
                         new_row.cells[1].text = str(dt)
                     elif len(new_row.cells) == 1:
                         new_row.cells[0].text = f"{dil} - {dt}"
-
                 tr = row._tr
                 table._tbl.remove(tr)
                 break
 
 
 def substituir_texto(doc_obj, mapa_substituicao):
-    """Substitui as variáveis {{TAG}} no corpo e nas tabelas do documento."""
     for p in doc_obj.paragraphs:
         for chave, valor in mapa_substituicao.items():
             if chave in p.text:
@@ -208,7 +147,6 @@ def substituir_texto(doc_obj, mapa_substituicao):
                                 p.text = p.text.replace(chave, str(valor))
 
 
-# --- CABEÇALHO DA PLATAFORMA ---
 col_logo, col_titulo = st.columns([1.2, 5], vertical_alignment="center")
 with col_logo:
     if os.path.exists("noBgWhite.png"):
@@ -232,7 +170,6 @@ tab1, tab2, tab3 = st.tabs(
     ]
 )
 
-# --- ABA 1: UPLOAD & SELEÇÃO ---
 with tab1:
     st.markdown("### 1. Upload da Planilha de Ocorrências")
     uploaded_file = st.file_uploader(
@@ -254,15 +191,23 @@ with tab1:
                 gerar_codigo_dossie(i + 1) for i in range(len(df))
             ]
 
-            col_cpf = (
-                "CPF/CNPJ Pesquisado"
-                if "CPF/CNPJ Pesquisado" in df.columns
-                else df.columns[6]
+            col_cpf = next(
+                (
+                    c
+                    for c in df.columns
+                    if "cpf" in c.lower()
+                    or "cnpj" in c.lower()
+                    or "pesquisado" in c.lower()
+                ),
+                df.columns[0],
             )
-            col_nome = (
-                "Nome Encontrado"
-                if "Nome Encontrado" in df.columns
-                else df.columns[8]
+            col_nome = next(
+                (
+                    c
+                    for c in df.columns
+                    if "nome" in c.lower() or "encontrado" in c.lower()
+                ),
+                df.columns[1],
             )
 
             df["ID_Alerta"] = df.apply(
@@ -286,13 +231,12 @@ with tab1:
         except Exception as e:
             st.error(f"Erro ao ler/processar a planilha: {e}")
 
-# Processamento Principal
 if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
     df = st.session_state["df_pld"]
     alerta_selecionado = st.session_state["alerta_selecionado"]
     linha = df[df["ID_Alerta"] == alerta_selecionado].iloc[0]
 
-    # Identificação flexível de colunas
+    # Busca dinâmica exata de colunas para Contraparte e Alerta
     col_dt_hit = next(
         (
             c
@@ -317,16 +261,27 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
         ),
         "Nome Encontrado",
     )
+    col_obs = next(
+        (
+            c
+            for c in df.columns
+            if "obs" in c.lower()
+             or "complemento" in c.lower()
+             or "publicação" in c.lower()
+             or "processo" in c.lower()
+        ),
+        "Complemento",
+    )
 
     op_origem = linha.get("Nome do Cliente", "")
     op_data = formatar_data(linha.get("Data da Operação", ""))
     op_valor = formatar_moeda(linha.get("Valor da Operação", ""))
     data_geracao = formatar_data(linha.get(col_dt_hit, ""))
     cpf_cnpj = linha.get(col_cpf, "")
-    status_ip = linha.get("Parte Relacionada", "")
+    status_ip = linha.get("Parte Relacionada", "Contraparte")
     nome_contraparte = linha.get(col_nome, "")
     regra_lista = linha.get("Lista", "")
-    obs_complemento = linha.get("Complemento", "")
+    obs_complemento = linha.get(col_obs, "")
     op_destino = nome_contraparte
 
     modelos_justificativas = {
@@ -337,7 +292,6 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
         "Outro (Especifique na Justificativa)": "",
     }
 
-    # --- ABA 2: ANÁLISE E DILIGÊNCIAS ---
     with tab2:
         c1, c2 = st.columns(2)
 
@@ -356,16 +310,12 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                 "Regra / Lista Restritiva", regra_lista, disabled=True
             )
             st.text_input("Status na IP", status_ip, disabled=True)
-            st.text_input("Operação - Origem", op_origem, disabled=True)
-            st.text_input("Operação - Data", op_data, disabled=True)
-            st.text_input("Operação - Valor", op_valor, disabled=True)
+            st.text_input("Observação / Detalhe", obs_complemento, disabled=True)
 
         with c2:
             st.markdown("#### ⚖️ Decisão & Matriz de Risco")
             analista = st.text_input(
-                "Analista Responsável",
-                "Analista PLD",
-                key="input_analista",
+                "Analista Responsável", "Analista PLD", key="input_analista"
             )
             data_analise = st.date_input(
                 "Data da Análise", datetime.date.today(), key="input_data_an"
@@ -390,20 +340,22 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
             diligencias_opcoes = st.multiselect(
                 "Selecione as diligências padrão:",
                 [
-                    "Consulta Mídia Negativa",
-                    "Pesquisa de Bens / Cartório",
                     "Consulta Base Pública (Receita / Sanções / CEIS)",
+                    "Verificação de Vínculos / Relacionamento",
+                    "Registro da análise do caso em dossiê formalizado e ciência para alta Administração.",
+                    "Consulta Mídia Negativa",
                     "Solicitação de Esclarecimentos ao Cliente",
+                ],
+                default=[
+                    "Consulta Base Pública (Receita / Sanções / CEIS)",
                     "Verificação de Vínculos / Relacionamento",
                 ],
-                default=["Consulta Base Pública (Receita / Sanções / CEIS)"],
                 key="select_diligencias",
             )
 
             diligencias_extras_raw = st.text_area(
                 "➕ Adicionar diligências personalizadas (uma por linha):",
-                placeholder="Análise de Contrato Social na Junta Comercial\nConsulta ao Sintegra / Cadastro Estadual\nVerificação de PEP no Portal da Transparência",
-                height=100,
+                height=80,
                 key="input_dil_extra",
             )
 
@@ -437,13 +389,11 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                 key="input_justificativa",
             )
 
-    # --- ABA 3: EMISSÃO DO DOSSIÊ ---
     with tab3:
         st.markdown("### 📄 Emissão e Exportação do Relatório Oficial")
 
         col_ind, col_lote = st.columns(2, gap="large")
 
-        # Data por extenso
         meses = [
             "janeiro",
             "fevereiro",
@@ -463,18 +413,22 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
             f"São Paulo, {hoje.day} de {meses[hoje.month - 1]} de {hoje.year}"
         )
 
-        # OPÇÃO 1: DOWNLOAD INDIVIDUAL
+        # DOWNLOAD INDIVIDUAL
         with col_ind:
             st.markdown("#### 👤 Download do Dossiê Selecionado")
+            cod_dossie = linha.get("CODIGO_DOSSIE", "DOSSIE")
+            nome_arquivo_padrao = f"Dossiê de alerta PLD-FT - {cod_dossie}.docx"
+
             st.info(
-                f"**Alerta:** {linha.get('CODIGO_DOSSIE')}\n\n**Contraparte:** {nome_contraparte}"
+                f"**Arquivo:** `{nome_arquivo_padrao}`\n\n**Contraparte:** {nome_contraparte}"
             )
 
             if st.button("🚀 Gerar Dossiê do Alerta Atual"):
-                if os.path.exists("modelo_dossie.docx"):
-                    doc = Document("modelo_dossie.docx")
-                else:
-                    doc = Document()
+                doc = (
+                    Document("modelo_dossie.docx")
+                    if os.path.exists("modelo_dossie.docx")
+                    else Document()
+                )
 
                 if lista_final_diligencias:
                     preencher_tabela_diligencias(
@@ -482,8 +436,8 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                     )
 
                 dicionario_dados = {
-                    "{{CODIGO_DOSSIE}}": linha.get("CODIGO_DOSSIE", ""),
-                    "{{NUM_ALERTA}}": linha.get("CODIGO_DOSSIE", ""),
+                    "{{CODIGO_DOSSIE}}": cod_dossie,
+                    "{{NUM_ALERTA}}": cod_dossie,
                     "{{SISTEMA}}": "Advice e-Guardian",
                     "{{NORMATIVA}}": (
                         "Lei nº 9.613/1998 e Resolução BCB nº 96/2021"
@@ -510,9 +464,6 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
 
                 substituir_texto(doc, dicionario_dados)
 
-                cod_dossie = linha.get("CODIGO_DOSSIE", "DOSSIE")
-                nome_arquivo = f"Dossiê PLD - {cod_dossie}.docx"
-
                 buffer = io.BytesIO()
                 doc.save(buffer)
                 buffer.seek(0)
@@ -520,31 +471,31 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                 st.download_button(
                     label=f"📥 Baixar Dossiê (.docx)",
                     data=buffer,
-                    file_name=nome_arquivo,
+                    file_name=nome_arquivo_padrao,
                     mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 )
 
-        # OPÇÃO 2: DOWNLOAD EM LOTE (.ZIP) - CORRIGIDO
+        # DOWNLOAD EM LOTE (.ZIP)
         with col_lote:
             st.markdown("#### 📦 Download em Lote (Todos os Alertas)")
             st.warning(
-                f"Serão gerados **{len(df)} dossiês** em um arquivo compactado (.ZIP) aplicando as configurações e diligências da análise."
+                f"Serão gerados **{len(df)} dossiês** compactados em `.ZIP` com a nomenclatura de título exata."
             )
 
             if st.button("⚡ Gerar Pacote em Lote (.ZIP)"):
-                with st.spinner("Gerando todos os dossiês em lote..."):
+                with st.spinner("Gerando lote de dossiês..."):
                     zip_buffer = io.BytesIO()
 
                     with zipfile.ZipFile(
                         zip_buffer, "w", zipfile.ZIP_DEFLATED
                     ) as zip_file:
                         for idx, row in df.iterrows():
-                            if os.path.exists("modelo_dossie.docx"):
-                                doc_item = Document("modelo_dossie.docx")
-                            else:
-                                doc_item = Document()
+                            doc_item = (
+                                Document("modelo_dossie.docx")
+                                if os.path.exists("modelo_dossie.docx")
+                                else Document()
+                            )
 
-                            # 1. Preenche tabela de diligências no documento do lote
                             if lista_final_diligencias:
                                 preencher_tabela_diligencias(
                                     doc_item,
@@ -557,8 +508,10 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                             item_nome = row.get(col_nome, "")
                             item_regra = row.get("Lista", "")
                             item_dt_ger = formatar_data(row.get(col_dt_hit, ""))
-                            item_status = row.get("Parte Relacionada", "")
-                            item_obs = row.get("Complemento", "")
+                            item_status = row.get(
+                                "Parte Relacionada", "Contraparte"
+                            )
+                            item_obs = row.get(col_obs, "")
                             item_op_origem = row.get("Nome do Cliente", "")
                             item_op_data = formatar_data(
                                 row.get("Data da Operação", "")
@@ -566,21 +519,6 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                             item_op_val = formatar_moeda(
                                 row.get("Valor da Operação", "")
                             )
-
-                            # Se a justificativa padrão mudar por conta da regra específica do item do lote
-                            justificativa_item = justificativa
-                            if (
-                                justificativa
-                                == modelos_justificativas.get(
-                                    decisao_arquivamento, ""
-                                )
-                            ):
-                                justificativa_item = (
-                                    f"Análise realizada sobre o apontamento na lista '{item_regra}'. Consultas efetuadas nas fontes abertas e bases públicas não identificaram risco iminente de PLD-FT ou atipicidade financeira."
-                                    if decisao_arquivamento
-                                    == "Arquivado - Sem Indício de Irregularidade"
-                                    else justificativa
-                                )
 
                             dic_item = {
                                 "{{CODIGO_DOSSIE}}": cod,
@@ -607,7 +545,7 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                                 "{{DATA_ANALISE}}": data_analise,
                                 "{{STATUS_ALERTA}}": decisao_arquivamento,
                                 "{{DECISAO}}": decisao_arquivamento,
-                                "{{JUSTIFICATIVA}}": justificativa_item,
+                                "{{JUSTIFICATIVA}}": justificativa,
                             }
 
                             substituir_texto(doc_item, dic_item)
@@ -616,10 +554,8 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                             doc_item.save(doc_buf)
                             doc_buf.seek(0)
 
-                            nome_limpo_contraparte = re.sub(
-                                r'[\\/*?:"<>|]', "", item_nome[:25].strip()
-                            )
-                            fname = f"Dossiê PLD - {cod} - {nome_limpo_contraparte}.docx"
+                            # Nome padrão do arquivo exato
+                            fname = f"Dossiê de alerta PLD-FT - {cod}.docx"
                             zip_file.writestr(fname, doc_buf.getvalue())
 
                     zip_buffer.seek(0)
