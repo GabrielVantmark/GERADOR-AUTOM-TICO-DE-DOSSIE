@@ -191,27 +191,12 @@ with tab1:
                 gerar_codigo_dossie(i + 1) for i in range(len(df))
             ]
 
-            col_cpf = next(
-                (
-                    c
-                    for c in df.columns
-                    if "cpf" in c.lower()
-                    or "cnpj" in c.lower()
-                    or "pesquisado" in c.lower()
-                ),
-                df.columns[0],
-            )
-            col_nome = next(
-                (
-                    c
-                    for c in df.columns
-                    if "nome" in c.lower() or "encontrado" in c.lower()
-                ),
-                df.columns[1],
-            )
+            # TRAVADO NAS COLUNAS EXATAS (G=6, I=8)
+            col_cpf_name = df.columns[6] if len(df.columns) > 6 else df.columns[0]
+            col_nome_name = df.columns[8] if len(df.columns) > 8 else df.columns[1]
 
             df["ID_Alerta"] = df.apply(
-                lambda r: f"{r['CODIGO_DOSSIE']} | {r.get(col_nome, '')} (CPF/CNPJ: {r.get(col_cpf, '')})",
+                lambda r: f"{r['CODIGO_DOSSIE']} | {r.get(col_nome_name, '')} (CPF/CNPJ: {r.get(col_cpf_name, '')})",
                 axis=1,
             )
 
@@ -236,40 +221,17 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
     alerta_selecionado = st.session_state["alerta_selecionado"]
     linha = df[df["ID_Alerta"] == alerta_selecionado].iloc[0]
 
-    # Busca dinâmica exata de colunas para Contraparte e Alerta
+    # TRAVADO NAS COLUNAS EXATAS (G=6, I=8)
+    col_cpf_name = df.columns[6] if len(df.columns) > 6 else df.columns[0]
+    col_nome_name = df.columns[8] if len(df.columns) > 8 else df.columns[1]
+
+    # Busca das demais colunas
     col_dt_hit = next(
-        (
-            c
-            for c in df.columns
-            if "detec" in c.lower() or "hit" in c.lower() or "geraç" in c.lower()
-        ),
+        (c for c in df.columns if "detec" in c.lower() or "hit" in c.lower() or "geraç" in c.lower()),
         "Data da Detecção do Hit",
     )
-    col_cpf = next(
-        (
-            c
-            for c in df.columns
-            if "cpf" in c.lower() or "cnpj" in c.lower() or "pesquisado" in c.lower()
-        ),
-        "CPF/CNPJ Pesquisado",
-    )
-    col_nome = next(
-        (
-            c
-            for c in df.columns
-            if "nome" in c.lower() or "encontrado" in c.lower()
-        ),
-        "Nome Encontrado",
-    )
     col_obs = next(
-        (
-            c
-            for c in df.columns
-            if "obs" in c.lower()
-             or "complemento" in c.lower()
-             or "publicação" in c.lower()
-             or "processo" in c.lower()
-        ),
+        (c for c in df.columns if "obs" in c.lower() or "complemento" in c.lower() or "publicação" in c.lower() or "processo" in c.lower()),
         "Complemento",
     )
 
@@ -277,12 +239,14 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
     op_data = formatar_data(linha.get("Data da Operação", ""))
     op_valor = formatar_moeda(linha.get("Valor da Operação", ""))
     data_geracao = formatar_data(linha.get(col_dt_hit, ""))
-    cpf_cnpj = linha.get(col_cpf, "")
     status_ip = linha.get("Parte Relacionada", "Contraparte")
-    nome_contraparte = linha.get(col_nome, "")
-    regra_lista = linha.get("Lista", "")
     obs_complemento = linha.get(col_obs, "")
-    op_destino = nome_contraparte
+    regra_lista = linha.get("Lista", "")
+
+    # Aplicando as variáveis fixas com base nas colunas fornecidas
+    cpf_cnpj = linha.get(col_cpf_name, "")
+    nome_contraparte = linha.get(col_nome_name, "")
+    op_destino = nome_contraparte # DESTINO recebe mesma informação de NOME_CONTRAPARTE
 
     modelos_justificativas = {
         "Arquivado - Sem Indício de Irregularidade": f"Análise realizada sobre o apontamento na lista '{regra_lista}'. Consultas efetuadas nas fontes abertas e bases públicas não identificaram risco iminente de PLD-FT ou atipicidade financeira.",
@@ -297,29 +261,17 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
 
         with c1:
             st.markdown("#### 📌 Dados do Alerta (Base Detectada)")
-            st.text_input(
-                "Nº Alerta / Rastreabilidade",
-                linha.get("CODIGO_DOSSIE"),
-                disabled=True,
-            )
-            st.text_input(
-                "Contraparte / Destino", nome_contraparte, disabled=True
-            )
-            st.text_input("CPF/CNPJ Pesquisado", cpf_cnpj, disabled=True)
-            st.text_input(
-                "Regra / Lista Restritiva", regra_lista, disabled=True
-            )
+            st.text_input("Nº Alerta / Rastreabilidade", linha.get("CODIGO_DOSSIE"), disabled=True)
+            st.text_input("Contraparte / Destino (Coluna I)", nome_contraparte, disabled=True)
+            st.text_input("CPF/CNPJ Pesquisado (Coluna G)", cpf_cnpj, disabled=True)
+            st.text_input("Regra / Lista Restritiva", regra_lista, disabled=True)
             st.text_input("Status na IP", status_ip, disabled=True)
             st.text_input("Observação / Detalhe", obs_complemento, disabled=True)
 
         with c2:
             st.markdown("#### ⚖️ Decisão & Matriz de Risco")
-            analista = st.text_input(
-                "Analista Responsável", "Analista PLD", key="input_analista"
-            )
-            data_analise = st.date_input(
-                "Data da Análise", datetime.date.today(), key="input_data_an"
-            ).strftime("%d/%m/%Y")
+            analista = st.text_input("Analista Responsável", "Analista PLD", key="input_analista")
+            data_analise = st.date_input("Data da Análise", datetime.date.today(), key="input_data_an").strftime("%d/%m/%Y")
 
             risco_cliente = st.selectbox(
                 "Classificação de Risco do Cliente:",
@@ -372,11 +324,7 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
             if lista_final_diligencias:
                 st.markdown("**Datas da realização:**")
                 for dil in lista_final_diligencias:
-                    d_data = st.date_input(
-                        f"Data - {dil}:",
-                        datetime.date.today(),
-                        key=f"data_{dil}",
-                    )
+                    d_data = st.date_input(f"Data - {dil}:", datetime.date.today(), key=f"data_{dil}")
                     datas_diligencias[dil] = d_data.strftime("%d/%m/%Y")
 
             st.markdown("---")
@@ -395,23 +343,11 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
         col_ind, col_lote = st.columns(2, gap="large")
 
         meses = [
-            "janeiro",
-            "fevereiro",
-            "março",
-            "abril",
-            "maio",
-            "junho",
-            "julho",
-            "agosto",
-            "setembro",
-            "outubro",
-            "novembro",
-            "dezembro",
+            "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+            "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
         ]
         hoje = datetime.date.today()
-        data_hoje_extenso = (
-            f"São Paulo, {hoje.day} de {meses[hoje.month - 1]} de {hoje.year}"
-        )
+        data_hoje_extenso = f"São Paulo, {hoje.day} de {meses[hoje.month - 1]} de {hoje.year}"
 
         # DOWNLOAD INDIVIDUAL
         with col_ind:
@@ -419,29 +355,19 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
             cod_dossie = linha.get("CODIGO_DOSSIE", "DOSSIE")
             nome_arquivo_padrao = f"Dossiê de alerta PLD-FT - {cod_dossie}.docx"
 
-            st.info(
-                f"**Arquivo:** `{nome_arquivo_padrao}`\n\n**Contraparte:** {nome_contraparte}"
-            )
+            st.info(f"**Arquivo:** `{nome_arquivo_padrao}`\n\n**Contraparte:** {nome_contraparte}")
 
             if st.button("🚀 Gerar Dossiê do Alerta Atual"):
-                doc = (
-                    Document("modelo_dossie.docx")
-                    if os.path.exists("modelo_dossie.docx")
-                    else Document()
-                )
+                doc = Document("modelo_dossie.docx") if os.path.exists("modelo_dossie.docx") else Document()
 
                 if lista_final_diligencias:
-                    preencher_tabela_diligencias(
-                        doc, lista_final_diligencias, datas_diligencias
-                    )
+                    preencher_tabela_diligencias(doc, lista_final_diligencias, datas_diligencias)
 
                 dicionario_dados = {
                     "{{CODIGO_DOSSIE}}": cod_dossie,
                     "{{NUM_ALERTA}}": cod_dossie,
                     "{{SISTEMA}}": "Advice e-Guardian",
-                    "{{NORMATIVA}}": (
-                        "Lei nº 9.613/1998 e Resolução BCB nº 96/2021"
-                    ),
+                    "{{NORMATIVA}}": "Lei nº 9.613/1998 e Resolução BCB nº 96/2021",
                     "{{DATA_GERACAO}}": data_geracao,
                     "{{DATA_ELABORACAO}}": data_hoje_extenso,
                     "{{CPF_CNPJ}}": cpf_cnpj,
@@ -478,56 +404,39 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
         # DOWNLOAD EM LOTE (.ZIP)
         with col_lote:
             st.markdown("#### 📦 Download em Lote (Todos os Alertas)")
-            st.warning(
-                f"Serão gerados **{len(df)} dossiês** compactados em `.ZIP` com a nomenclatura de título exata."
-            )
+            st.warning(f"Serão gerados **{len(df)} dossiês** compactados em `.ZIP` com a nomenclatura de título exata.")
 
             if st.button("⚡ Gerar Pacote em Lote (.ZIP)"):
                 with st.spinner("Gerando lote de dossiês..."):
                     zip_buffer = io.BytesIO()
 
-                    with zipfile.ZipFile(
-                        zip_buffer, "w", zipfile.ZIP_DEFLATED
-                    ) as zip_file:
+                    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                         for idx, row in df.iterrows():
-                            doc_item = (
-                                Document("modelo_dossie.docx")
-                                if os.path.exists("modelo_dossie.docx")
-                                else Document()
-                            )
+                            doc_item = Document("modelo_dossie.docx") if os.path.exists("modelo_dossie.docx") else Document()
 
                             if lista_final_diligencias:
-                                preencher_tabela_diligencias(
-                                    doc_item,
-                                    lista_final_diligencias,
-                                    datas_diligencias,
-                                )
+                                preencher_tabela_diligencias(doc_item, lista_final_diligencias, datas_diligencias)
 
                             cod = row.get("CODIGO_DOSSIE", f"DOS-{idx+1}")
-                            item_cpf = row.get(col_cpf, "")
-                            item_nome = row.get(col_nome, "")
+                            
+                            # Mapeamento do lote lendo dos índices exatos: G e I
+                            item_cpf = row.get(col_cpf_name, "")
+                            item_nome = row.get(col_nome_name, "")
+                            item_op_destino = item_nome
+                            
                             item_regra = row.get("Lista", "")
                             item_dt_ger = formatar_data(row.get(col_dt_hit, ""))
-                            item_status = row.get(
-                                "Parte Relacionada", "Contraparte"
-                            )
+                            item_status = row.get("Parte Relacionada", "Contraparte")
                             item_obs = row.get(col_obs, "")
                             item_op_origem = row.get("Nome do Cliente", "")
-                            item_op_data = formatar_data(
-                                row.get("Data da Operação", "")
-                            )
-                            item_op_val = formatar_moeda(
-                                row.get("Valor da Operação", "")
-                            )
+                            item_op_data = formatar_data(row.get("Data da Operação", ""))
+                            item_op_val = formatar_moeda(row.get("Valor da Operação", ""))
 
                             dic_item = {
                                 "{{CODIGO_DOSSIE}}": cod,
                                 "{{NUM_ALERTA}}": cod,
                                 "{{SISTEMA}}": "Advice e-Guardian",
-                                "{{NORMATIVA}}": (
-                                    "Lei nº 9.613/1998 e Resolução BCB nº"
-                                    " 96/2021"
-                                ),
+                                "{{NORMATIVA}}": "Lei nº 9.613/1998 e Resolução BCB nº 96/2021",
                                 "{{DATA_GERACAO}}": item_dt_ger,
                                 "{{DATA_ELABORACAO}}": data_hoje_extenso,
                                 "{{CPF_CNPJ}}": item_cpf,
@@ -537,7 +446,7 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                                 "{{STATUS_IP}}": item_status,
                                 "{{OBS_CONTRAPARTE}}": item_obs,
                                 "{{OPERAÇÃO_ORIGEM}}": item_op_origem,
-                                "{{OPERAÇÃO_DESTINO}}": item_nome,
+                                "{{OPERAÇÃO_DESTINO}}": item_op_destino,
                                 "{{OPERAÇÃO_DATA}}": item_op_data,
                                 "{{OPERAÇÃO_VALOR}}": item_op_val,
                                 "{{RISCO_CLIENTE}}": risco_cliente,
@@ -554,7 +463,6 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                             doc_item.save(doc_buf)
                             doc_buf.seek(0)
 
-                            # Nome padrão do arquivo exato
                             fname = f"Dossiê de alerta PLD-FT - {cod}.docx"
                             zip_file.writestr(fname, doc_buf.getvalue())
 
@@ -569,8 +477,6 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                     )
 else:
     with tab2:
-        st.warning(
-            "⚠️ Faça o upload da planilha na **Aba 1** para habilitar a análise."
-        )
+        st.warning("⚠️ Faça o upload da planilha na **Aba 1** para habilitar a análise.")
     with tab3:
         st.warning("⚠️ Nenhum alerta carregado para emissão.")
