@@ -53,7 +53,7 @@ bg_css = (
     else ".stApp { background-color: #09090b !important; }"
 )
 
-# 2. CSS Cirúrgico
+# 2. CSS Estilizado
 st.markdown(
     f"""
     <style>
@@ -73,7 +73,6 @@ st.markdown(
         color: #F4F4F5 !important;
     }}
 
-    /* Isolamento da caixa de Upload */
     [data-testid="stFileUploader"] > div {{
         background-color: rgba(24, 24, 27, 0.85) !important;
         border: 1px dashed rgba(255, 255, 255, 0.3) !important;
@@ -81,7 +80,6 @@ st.markdown(
         padding: 1.5rem !important;
     }}
 
-    /* Estilização das Abas */
     .stTabs [data-baseweb="tab-list"] {{
         gap: 8px;
         background-color: rgba(18, 18, 18, 0.75);
@@ -163,6 +161,7 @@ def formatar_moeda(valor):
 
 
 def preencher_tabela_diligencias(doc_obj, lista_diligencias, datas_diligencias):
+    """Insere as linhas na tabela de diligências e remove a linha template."""
     for table in doc_obj.tables:
         for row in table.rows:
             cell_texts = [c.text for c in row.cells]
@@ -184,6 +183,7 @@ def preencher_tabela_diligencias(doc_obj, lista_diligencias, datas_diligencias):
 
 
 def substituir_texto(doc_obj, mapa_substituicao):
+    """Substitui as variáveis {{TAG}} no corpo e nas tabelas do documento."""
     for p in doc_obj.paragraphs:
         for chave, valor in mapa_substituicao.items():
             if chave in p.text:
@@ -286,19 +286,45 @@ with tab1:
         except Exception as e:
             st.error(f"Erro ao ler/processar a planilha: {e}")
 
-# Processamento
+# Processamento Principal
 if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
     df = st.session_state["df_pld"]
     alerta_selecionado = st.session_state["alerta_selecionado"]
     linha = df[df["ID_Alerta"] == alerta_selecionado].iloc[0]
 
+    # Identificação flexível de colunas
+    col_dt_hit = next(
+        (
+            c
+            for c in df.columns
+            if "detec" in c.lower() or "hit" in c.lower() or "geraç" in c.lower()
+        ),
+        "Data da Detecção do Hit",
+    )
+    col_cpf = next(
+        (
+            c
+            for c in df.columns
+            if "cpf" in c.lower() or "cnpj" in c.lower() or "pesquisado" in c.lower()
+        ),
+        "CPF/CNPJ Pesquisado",
+    )
+    col_nome = next(
+        (
+            c
+            for c in df.columns
+            if "nome" in c.lower() or "encontrado" in c.lower()
+        ),
+        "Nome Encontrado",
+    )
+
     op_origem = linha.get("Nome do Cliente", "")
     op_data = formatar_data(linha.get("Data da Operação", ""))
     op_valor = formatar_moeda(linha.get("Valor da Operação", ""))
-    data_geracao = formatar_data(linha.get("Data da Detecção do Hit", ""))
-    cpf_cnpj = linha.get("CPF/CNPJ Pesquisado", "")
+    data_geracao = formatar_data(linha.get(col_dt_hit, ""))
+    cpf_cnpj = linha.get(col_cpf, "")
     status_ip = linha.get("Parte Relacionada", "")
-    nome_contraparte = linha.get("Nome Encontrado", "")
+    nome_contraparte = linha.get(col_nome, "")
     regra_lista = linha.get("Lista", "")
     obs_complemento = linha.get("Complemento", "")
     op_destino = nome_contraparte
@@ -374,7 +400,6 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                 key="select_diligencias",
             )
 
-            # MÚLTIPLAS DILIGÊNCIAS EXTRAS VIA TEXT_AREA
             diligencias_extras_raw = st.text_area(
                 "➕ Adicionar diligências personalizadas (uma por linha):",
                 placeholder="Análise de Contrato Social na Junta Comercial\nConsulta ao Sintegra / Cadastro Estadual\nVerificação de PEP no Portal da Transparência",
@@ -384,11 +409,10 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
 
             lista_final_diligencias = list(diligencias_opcoes)
             if diligencias_extras_raw.strip():
-                # Separa por linha e adiciona apenas as que não estiverem vazias
                 extras = [
-                    linha.strip()
-                    for linha in diligencias_extras_raw.splitlines()
-                    if linha.strip()
+                    l.strip()
+                    for l in diligencias_extras_raw.splitlines()
+                    if l.strip()
                 ]
                 lista_final_diligencias.extend(extras)
 
@@ -419,6 +443,26 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
 
         col_ind, col_lote = st.columns(2, gap="large")
 
+        # Data por extenso
+        meses = [
+            "janeiro",
+            "fevereiro",
+            "março",
+            "abril",
+            "maio",
+            "junho",
+            "julho",
+            "agosto",
+            "setembro",
+            "outubro",
+            "novembro",
+            "dezembro",
+        ]
+        hoje = datetime.date.today()
+        data_hoje_extenso = (
+            f"São Paulo, {hoje.day} de {meses[hoje.month - 1]} de {hoje.year}"
+        )
+
         # OPÇÃO 1: DOWNLOAD INDIVIDUAL
         with col_ind:
             st.markdown("#### 👤 Download do Dossiê Selecionado")
@@ -436,23 +480,6 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                     preencher_tabela_diligencias(
                         doc, lista_final_diligencias, datas_diligencias
                     )
-
-                meses = [
-                    "janeiro",
-                    "fevereiro",
-                    "março",
-                    "abril",
-                    "maio",
-                    "junho",
-                    "julho",
-                    "agosto",
-                    "setembro",
-                    "outubro",
-                    "novembro",
-                    "dezembro",
-                ]
-                hoje = datetime.date.today()
-                data_hoje_extenso = f"São Paulo, {hoje.day} de {meses[hoje.month - 1]} de {hoje.year}"
 
                 dicionario_dados = {
                     "{{CODIGO_DOSSIE}}": linha.get("CODIGO_DOSSIE", ""),
@@ -497,11 +524,11 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                     mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 )
 
-        # OPÇÃO 2: DOWNLOAD EM LOTE (.ZIP)
+        # OPÇÃO 2: DOWNLOAD EM LOTE (.ZIP) - CORRIGIDO
         with col_lote:
             st.markdown("#### 📦 Download em Lote (Todos os Alertas)")
             st.warning(
-                f"Serão gerados **{len(df)} dossiês** em um arquivo compactado (.ZIP)."
+                f"Serão gerados **{len(df)} dossiês** em um arquivo compactado (.ZIP) aplicando as configurações e diligências da análise."
             )
 
             if st.button("⚡ Gerar Pacote em Lote (.ZIP)"):
@@ -511,47 +538,25 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                     with zipfile.ZipFile(
                         zip_buffer, "w", zipfile.ZIP_DEFLATED
                     ) as zip_file:
-                        meses = [
-                            "janeiro",
-                            "fevereiro",
-                            "março",
-                            "abril",
-                            "maio",
-                            "junho",
-                            "julho",
-                            "agosto",
-                            "setembro",
-                            "outubro",
-                            "novembro",
-                            "dezembro",
-                        ]
-                        hoje = datetime.date.today()
-                        data_hoje_extenso = f"São Paulo, {hoje.day} de {meses[hoje.month - 1]} de {hoje.year}"
-
                         for idx, row in df.iterrows():
                             if os.path.exists("modelo_dossie.docx"):
                                 doc_item = Document("modelo_dossie.docx")
                             else:
                                 doc_item = Document()
 
-                            cod = row.get("CODIGO_DOSSIE", f"DOS-{idx+1}")
-                            c_cpf = (
-                                "CPF/CNPJ Pesquisado"
-                                if "CPF/CNPJ Pesquisado" in df.columns
-                                else df.columns[6]
-                            )
-                            c_nome = (
-                                "Nome Encontrado"
-                                if "Nome Encontrado" in df.columns
-                                else df.columns[8]
-                            )
+                            # 1. Preenche tabela de diligências no documento do lote
+                            if lista_final_diligencias:
+                                preencher_tabela_diligencias(
+                                    doc_item,
+                                    lista_final_diligencias,
+                                    datas_diligencias,
+                                )
 
-                            item_cpf = row.get(c_cpf, "")
-                            item_nome = row.get(c_nome, "")
+                            cod = row.get("CODIGO_DOSSIE", f"DOS-{idx+1}")
+                            item_cpf = row.get(col_cpf, "")
+                            item_nome = row.get(col_nome, "")
                             item_regra = row.get("Lista", "")
-                            item_dt_ger = formatar_data(
-                                row.get("Data da Detecção do Hit", "")
-                            )
+                            item_dt_ger = formatar_data(row.get(col_dt_hit, ""))
                             item_status = row.get("Parte Relacionada", "")
                             item_obs = row.get("Complemento", "")
                             item_op_origem = row.get("Nome do Cliente", "")
@@ -561,6 +566,21 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                             item_op_val = formatar_moeda(
                                 row.get("Valor da Operação", "")
                             )
+
+                            # Se a justificativa padrão mudar por conta da regra específica do item do lote
+                            justificativa_item = justificativa
+                            if (
+                                justificativa
+                                == modelos_justificativas.get(
+                                    decisao_arquivamento, ""
+                                )
+                            ):
+                                justificativa_item = (
+                                    f"Análise realizada sobre o apontamento na lista '{item_regra}'. Consultas efetuadas nas fontes abertas e bases públicas não identificaram risco iminente de PLD-FT ou atipicidade financeira."
+                                    if decisao_arquivamento
+                                    == "Arquivado - Sem Indício de Irregularidade"
+                                    else justificativa
+                                )
 
                             dic_item = {
                                 "{{CODIGO_DOSSIE}}": cod,
@@ -582,19 +602,12 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                                 "{{OPERAÇÃO_DESTINO}}": item_nome,
                                 "{{OPERAÇÃO_DATA}}": item_op_data,
                                 "{{OPERAÇÃO_VALOR}}": item_op_val,
-                                "{{RISCO_CLIENTE}}": "Não Classificado",
-                                "{{ANALISTA}}": "Analista PLD",
-                                "{{DATA_ANALISE}}": hoje.strftime("%d/%m/%Y"),
-                                "{{STATUS_ALERTA}}": (
-                                    "Arquivado - Sem Indício de Irregularidade"
-                                ),
-                                "{{DECISAO}}": (
-                                    "Arquivado - Sem Indício de Irregularidade"
-                                ),
-                                "{{JUSTIFICATIVA}}": modelos_justificativas.get(
-                                    "Arquivado - Sem Indício de Irregularidade",
-                                    "",
-                                ),
+                                "{{RISCO_CLIENTE}}": risco_cliente,
+                                "{{ANALISTA}}": analista,
+                                "{{DATA_ANALISE}}": data_analise,
+                                "{{STATUS_ALERTA}}": decisao_arquivamento,
+                                "{{DECISAO}}": decisao_arquivamento,
+                                "{{JUSTIFICATIVA}}": justificativa_item,
                             }
 
                             substituir_texto(doc_item, dic_item)
@@ -606,7 +619,7 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                             nome_limpo_contraparte = re.sub(
                                 r'[\\/*?:"<>|]', "", item_nome[:25].strip()
                             )
-                            fname = f"Dossie_{cod}_{nome_limpo_contraparte}.docx"
+                            fname = f"Dossiê PLD - {cod} - {nome_limpo_contraparte}.docx"
                             zip_file.writestr(fname, doc_buf.getvalue())
 
                     zip_buffer.seek(0)
