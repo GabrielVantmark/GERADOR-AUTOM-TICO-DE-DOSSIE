@@ -374,15 +374,23 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                 key="select_diligencias",
             )
 
-            diligencia_extra = st.text_input(
-                "➕ Adicionar diligência personalizada (opcional):",
-                placeholder="Ex: Análise de Contrato Social na Junta Comercial",
+            # MÚLTIPLAS DILIGÊNCIAS EXTRAS VIA TEXT_AREA
+            diligencias_extras_raw = st.text_area(
+                "➕ Adicionar diligências personalizadas (uma por linha):",
+                placeholder="Análise de Contrato Social na Junta Comercial\nConsulta ao Sintegra / Cadastro Estadual\nVerificação de PEP no Portal da Transparência",
+                height=100,
                 key="input_dil_extra",
             )
 
             lista_final_diligencias = list(diligencias_opcoes)
-            if diligencia_extra.strip():
-                lista_final_diligencias.append(diligencia_extra.strip())
+            if diligencias_extras_raw.strip():
+                # Separa por linha e adiciona apenas as que não estiverem vazias
+                extras = [
+                    linha.strip()
+                    for linha in diligencias_extras_raw.splitlines()
+                    if linha.strip()
+                ]
+                lista_final_diligencias.extend(extras)
 
             datas_diligencias = {}
             if lista_final_diligencias:
