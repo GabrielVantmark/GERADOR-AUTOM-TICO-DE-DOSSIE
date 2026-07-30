@@ -17,7 +17,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-
 @st.cache_data
 def get_optimized_base64_background(bin_file):
     if os.path.exists(bin_file):
@@ -33,7 +32,6 @@ def get_optimized_base64_background(bin_file):
             with open(bin_file, "rb") as f:
                 return base64.b64encode(f.read()).decode()
     return None
-
 
 NOME_IMAGEM_FUNDO = (
     "abstract-metallic-wave-texture-with-glossy-reflective-surface-dark-lighting.jpg"
@@ -70,11 +68,9 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-
 def gerar_codigo_dossie(indice):
     hoje = datetime.date.today().strftime("%Y%m%d")
     return f"DOS-{hoje}-{str(indice).zfill(3)}"
-
 
 def formatar_data(valor):
     if pd.isna(valor) or not valor:
@@ -86,21 +82,14 @@ def formatar_data(valor):
         return f"{dia}/{mes}/{ano}"
     return val_str
 
-
 def formatar_moeda(valor):
     if pd.isna(valor) or not valor:
         return "R$ 0,00"
     try:
         val_float = float(str(valor).replace(",", "."))
-        return (
-            f"R$ {val_float:,.2f}"
-            .replace(",", "v")
-            .replace(".", ",")
-            .replace("v", ".")
-        )
+        return f"R$ {val_float:,.2f}".replace(",", "v").replace(".", ",").replace("v", ".")
     except Exception:
         return f"R$ {valor}"
-
 
 def preencher_tabela_diligencias(doc_obj, lista_diligencias, datas_diligencias):
     for table in doc_obj.tables:
@@ -121,7 +110,6 @@ def preencher_tabela_diligencias(doc_obj, lista_diligencias, datas_diligencias):
                 table._tbl.remove(tr)
                 break
 
-
 def substituir_texto(doc_obj, mapa_substituicao):
     for p in doc_obj.paragraphs:
         for chave, valor in mapa_substituicao.items():
@@ -140,9 +128,7 @@ def substituir_texto(doc_obj, mapa_substituicao):
                         for p in cell.paragraphs:
                             for run in p.runs:
                                 if chave in run.text:
-                                    run.text = run.text.replace(
-                                        chave, str(valor)
-                                    )
+                                    run.text = run.text.replace(chave, str(valor))
                             if chave in p.text:
                                 p.text = p.text.replace(chave, str(valor))
 
@@ -156,26 +142,19 @@ with col_logo:
 
 with col_titulo:
     st.title("Sistema de Gestão e Emissão de Dossiês PLD-FT")
-    st.caption(
-        "Plataforma de Automação de Análise de Alertas, Diligências e Compliance"
-    )
+    st.caption("Plataforma de Automação de Análise de Alertas, Diligências e Compliance")
 
 st.markdown("---")
 
-tab1, tab2, tab3 = st.tabs(
-    [
-        "📂 1. Carregamento & Alertas",
-        "🔍 2. Análise & Diligências",
-        "📄 3. Emissão do Dossiê",
-    ]
-)
+tab1, tab2, tab3 = st.tabs([
+    "📂 1. Carregamento & Alertas",
+    "🔍 2. Análise & Diligências",
+    "📄 3. Emissão do Dossiê",
+])
 
 with tab1:
     st.markdown("### 1. Upload da Planilha de Ocorrências")
-    uploaded_file = st.file_uploader(
-        "Arraste e solte a base de detectados (.xlsx ou .csv):",
-        type=["xlsx", "xls", "csv"],
-    )
+    uploaded_file = st.file_uploader("Arraste e solte a base de detectados (.xlsx ou .csv):", type=["xlsx", "xls", "csv"])
 
     if uploaded_file is not None:
         try:
@@ -187,9 +166,7 @@ with tab1:
             df.columns = [str(c).strip() for c in df.columns]
             df = df.fillna("")
 
-            df["CODIGO_DOSSIE"] = [
-                gerar_codigo_dossie(i + 1) for i in range(len(df))
-            ]
+            df["CODIGO_DOSSIE"] = [gerar_codigo_dossie(i + 1) for i in range(len(df))]
 
             # TRAVADO NAS COLUNAS EXATAS (G=6, I=8)
             col_cpf_name = df.columns[6] if len(df.columns) > 6 else df.columns[0]
@@ -201,20 +178,16 @@ with tab1:
             )
 
             st.session_state["df_pld"] = df
-            st.success(
-                f"✅ Base carregada com sucesso! **{len(df)} alerta(s)** prontos para análise."
-            )
+            st.success(f"✅ Base carregada com sucesso! **{len(df)} alerta(s)** prontos para análise.")
 
             st.markdown("---")
             st.markdown("### Seleção do Registro para Análise")
-            alerta_selecionado = st.selectbox(
-                "Escolha o alerta para trabalhar nesta sessão:",
-                df["ID_Alerta"].tolist(),
-            )
+            alerta_selecionado = st.selectbox("Escolha o alerta para trabalhar nesta sessão:", df["ID_Alerta"].tolist())
             st.session_state["alerta_selecionado"] = alerta_selecionado
 
         except Exception as e:
             st.error(f"Erro ao ler/processar a planilha: {e}")
+
 
 if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
     df = st.session_state["df_pld"]
@@ -225,15 +198,8 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
     col_cpf_name = df.columns[6] if len(df.columns) > 6 else df.columns[0]
     col_nome_name = df.columns[8] if len(df.columns) > 8 else df.columns[1]
 
-    # Busca das demais colunas
-    col_dt_hit = next(
-        (c for c in df.columns if "detec" in c.lower() or "hit" in c.lower() or "geraç" in c.lower()),
-        "Data da Detecção do Hit",
-    )
-    col_obs = next(
-        (c for c in df.columns if "obs" in c.lower() or "complemento" in c.lower() or "publicação" in c.lower() or "processo" in c.lower()),
-        "Complemento",
-    )
+    col_dt_hit = next((c for c in df.columns if "detec" in c.lower() or "hit" in c.lower() or "geraç" in c.lower()), "Data da Detecção do Hit")
+    col_obs = next((c for c in df.columns if "obs" in c.lower() or "complemento" in c.lower() or "publicação" in c.lower() or "processo" in c.lower()), "Complemento")
 
     op_origem = linha.get("Nome do Cliente", "")
     op_data = formatar_data(linha.get("Data da Operação", ""))
@@ -243,10 +209,9 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
     obs_complemento = linha.get(col_obs, "")
     regra_lista = linha.get("Lista", "")
 
-    # Aplicando as variáveis fixas com base nas colunas fornecidas
     cpf_cnpj = linha.get(col_cpf_name, "")
     nome_contraparte = linha.get(col_nome_name, "")
-    op_destino = nome_contraparte # DESTINO recebe mesma informação de NOME_CONTRAPARTE
+    op_destino = nome_contraparte
 
     modelos_justificativas = {
         "Arquivado - Sem Indício de Irregularidade": f"Análise realizada sobre o apontamento na lista '{regra_lista}'. Consultas efetuadas nas fontes abertas e bases públicas não identificaram risco iminente de PLD-FT ou atipicidade financeira.",
@@ -279,12 +244,7 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                 index=0,
                 key="select_risco",
             )
-
-            decisao_arquivamento = st.selectbox(
-                "Conclusão da Análise:",
-                list(modelos_justificativas.keys()),
-                key="select_decisao",
-            )
+            decisao_arquivamento = st.selectbox("Conclusão da Análise:", list(modelos_justificativas.keys()), key="select_decisao")
 
             st.markdown("---")
             st.markdown("##### 🔎 Diligências Efetuadas")
@@ -305,20 +265,55 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                 key="select_diligencias",
             )
 
-            diligencias_extras_raw = st.text_area(
-                "➕ Adicionar diligências personalizadas (uma por linha):",
-                height=80,
-                key="input_dil_extra",
-            )
+            # --- SISTEMA DE LISTA DINÂMICA DE DILIGÊNCIAS EXTRAS ---
+            
+            # Inicializa a memória da lista separada para cada Alerta
+            if "dil_custom_dict" not in st.session_state:
+                st.session_state["dil_custom_dict"] = {}
+            if alerta_selecionado not in st.session_state["dil_custom_dict"]:
+                st.session_state["dil_custom_dict"][alerta_selecionado] = []
 
-            lista_final_diligencias = list(diligencias_opcoes)
-            if diligencias_extras_raw.strip():
-                extras = [
-                    l.strip()
-                    for l in diligencias_extras_raw.splitlines()
-                    if l.strip()
-                ]
-                lista_final_diligencias.extend(extras)
+            # Função engatilhada ao clicar em "Adicionar"
+            def adicionar_diligencia_custom():
+                novas = st.session_state.get("nova_dil_input", "").strip()
+                if novas:
+                    # Permite colar várias separadas por linha ("Enter") de uma vez
+                    for line in novas.splitlines():
+                        ln = line.strip()
+                        if ln and ln not in st.session_state["dil_custom_dict"][alerta_selecionado]:
+                            st.session_state["dil_custom_dict"][alerta_selecionado].append(ln)
+                # Limpa a caixa de texto após adicionar
+                st.session_state["nova_dil_input"] = ""
+
+            st.markdown("**➕ Adicionar diligências personalizadas:**")
+            
+            # Entrada de texto e Botão lado a lado
+            col_in, col_btn = st.columns([4, 1.5], vertical_alignment="bottom")
+            with col_in:
+                st.text_input(
+                    "Digite e clique em Adicionar:", 
+                    placeholder="Ex: Análise de Contrato Social...", 
+                    key="nova_dil_input", 
+                    on_change=adicionar_diligencia_custom,
+                    label_visibility="collapsed"
+                )
+            with col_btn:
+                st.button("➕ Adicionar", on_click=adicionar_diligencia_custom, use_container_width=True)
+
+            # Mostra a lista das que foram adicionadas com botão de excluir
+            lista_custom = st.session_state["dil_custom_dict"][alerta_selecionado]
+            if lista_custom:
+                st.markdown("<br><i>Diligências Extras Adicionadas nesta sessão:</i>", unsafe_allow_html=True)
+                for i, d in enumerate(lista_custom):
+                    c_text, c_del = st.columns([10, 1], vertical_alignment="center")
+                    c_text.markdown(f"✔️ {d}")
+                    if c_del.button("❌", key=f"del_{alerta_selecionado}_{i}", help="Remover da lista"):
+                        st.session_state["dil_custom_dict"][alerta_selecionado].pop(i)
+                        st.rerun()
+
+            # Junta as padrões com as extras adicionadas
+            lista_final_diligencias = list(diligencias_opcoes) + lista_custom
+            # -------------------------------------------------------
 
             datas_diligencias = {}
             if lista_final_diligencias:
@@ -342,19 +337,14 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
 
         col_ind, col_lote = st.columns(2, gap="large")
 
-        meses = [
-            "janeiro", "fevereiro", "março", "abril", "maio", "junho",
-            "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
-        ]
+        meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
         hoje = datetime.date.today()
         data_hoje_extenso = f"São Paulo, {hoje.day} de {meses[hoje.month - 1]} de {hoje.year}"
 
-        # DOWNLOAD INDIVIDUAL
         with col_ind:
             st.markdown("#### 👤 Download do Dossiê Selecionado")
             cod_dossie = linha.get("CODIGO_DOSSIE", "DOSSIE")
             nome_arquivo_padrao = f"Dossiê de alerta PLD-FT - {cod_dossie}.docx"
-
             st.info(f"**Arquivo:** `{nome_arquivo_padrao}`\n\n**Contraparte:** {nome_contraparte}")
 
             if st.button("🚀 Gerar Dossiê do Alerta Atual"):
@@ -401,7 +391,6 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                     mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 )
 
-        # DOWNLOAD EM LOTE (.ZIP)
         with col_lote:
             st.markdown("#### 📦 Download em Lote (Todos os Alertas)")
             st.warning(f"Serão gerados **{len(df)} dossiês** compactados em `.ZIP` com a nomenclatura de título exata.")
@@ -419,7 +408,6 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
 
                             cod = row.get("CODIGO_DOSSIE", f"DOS-{idx+1}")
                             
-                            # Mapeamento do lote lendo dos índices exatos: G e I
                             item_cpf = row.get(col_cpf_name, "")
                             item_nome = row.get(col_nome_name, "")
                             item_op_destino = item_nome
