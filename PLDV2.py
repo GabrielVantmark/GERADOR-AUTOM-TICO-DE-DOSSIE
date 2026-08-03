@@ -3,6 +3,7 @@ import datetime
 import io
 import os
 import re
+import tempfile
 import zipfile
 from docx import Document
 import pandas as pd
@@ -168,7 +169,6 @@ with tab1:
 
             df["CODIGO_DOSSIE"] = [gerar_codigo_dossie(i + 1) for i in range(len(df))]
 
-            # TRAVADO NAS COLUNAS EXATAS (G=6, I=8)
             col_cpf_name = df.columns[6] if len(df.columns) > 6 else df.columns[0]
             col_nome_name = df.columns[8] if len(df.columns) > 8 else df.columns[1]
 
@@ -194,7 +194,6 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
     alerta_selecionado = st.session_state["alerta_selecionado"]
     linha = df[df["ID_Alerta"] == alerta_selecionado].iloc[0]
 
-    # TRAVADO NAS COLUNAS EXATAS (G=6, I=8)
     col_cpf_name = df.columns[6] if len(df.columns) > 6 else df.columns[0]
     col_nome_name = df.columns[8] if len(df.columns) > 8 else df.columns[1]
 
@@ -265,29 +264,22 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                 key="select_diligencias",
             )
 
-            # --- SISTEMA DE LISTA DINÂMICA DE DILIGÊNCIAS EXTRAS ---
-            
-            # Inicializa a memória da lista separada para cada Alerta
             if "dil_custom_dict" not in st.session_state:
                 st.session_state["dil_custom_dict"] = {}
             if alerta_selecionado not in st.session_state["dil_custom_dict"]:
                 st.session_state["dil_custom_dict"][alerta_selecionado] = []
 
-            # Função engatilhada ao clicar em "Adicionar"
             def adicionar_diligencia_custom():
                 novas = st.session_state.get("nova_dil_input", "").strip()
                 if novas:
-                    # Permite colar várias separadas por linha ("Enter") de uma vez
                     for line in novas.splitlines():
                         ln = line.strip()
                         if ln and ln not in st.session_state["dil_custom_dict"][alerta_selecionado]:
                             st.session_state["dil_custom_dict"][alerta_selecionado].append(ln)
-                # Limpa a caixa de texto após adicionar
                 st.session_state["nova_dil_input"] = ""
 
             st.markdown("**➕ Adicionar diligências personalizadas:**")
             
-            # Entrada de texto e Botão lado a lado
             col_in, col_btn = st.columns([4, 1.5], vertical_alignment="bottom")
             with col_in:
                 st.text_input(
@@ -300,7 +292,6 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
             with col_btn:
                 st.button("➕ Adicionar", on_click=adicionar_diligencia_custom, use_container_width=True)
 
-            # Mostra a lista das que foram adicionadas com botão de excluir
             lista_custom = st.session_state["dil_custom_dict"][alerta_selecionado]
             if lista_custom:
                 st.markdown("<br><i>Diligências Extras Adicionadas nesta sessão:</i>", unsafe_allow_html=True)
@@ -311,9 +302,7 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                         st.session_state["dil_custom_dict"][alerta_selecionado].pop(i)
                         st.rerun()
 
-            # Junta as padrões com as extras adicionadas
             lista_final_diligencias = list(diligencias_opcoes) + lista_custom
-            # -------------------------------------------------------
 
             datas_diligencias = {}
             if lista_final_diligencias:
@@ -347,7 +336,7 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
             nome_arquivo_padrao = f"Dossiê de alerta PLD-FT - {cod_dossie}.docx"
             st.info(f"**Arquivo:** `{nome_arquivo_padrao}`\n\n**Contraparte:** {nome_contraparte}")
 
-            if st.button("🚀 Gerar Dossiê do Alerta Atual"):
+            if st.button("🚀 Gerar Dossiê do Alerta Atual (.docx)"):
                 doc = Document("modelo_dossie.docx") if os.path.exists("modelo_dossie.docx") else Document()
 
                 if lista_final_diligencias:
@@ -393,10 +382,17 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
 
         with col_lote:
             st.markdown("#### 📦 Download em Lote (Todos os Alertas)")
-            st.warning(f"Serão gerados **{len(df)} dossiês** compactados em `.ZIP` com a nomenclatura de título exata.")
+            st.warning(f"Serão gerados **{len(df)} dossiês** compactados em `.ZIP`.")
+            
+            # --- NOVO: Seletor de formato para o lote ---
+            formato_lote = st.radio(
+                "Selecione o formato de saída:", 
+                [".docx (Word)", ".pdf (Requer Microsoft Word instalado)"], 
+                horizontal=True
+            )
 
             if st.button("⚡ Gerar Pacote em Lote (.ZIP)"):
-                with st.spinner("Gerando lote de dossiês..."):
+                with st.spinner("Gerando lote de dossiês... Isso pode levar alguns minutos se a opção PDF estiver selecionada."):
                     zip_buffer = io.BytesIO()
 
                     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
@@ -407,11 +403,9 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                                 preencher_tabela_diligencias(doc_item, lista_final_diligencias, datas_diligencias)
 
                             cod = row.get("CODIGO_DOSSIE", f"DOS-{idx+1}")
-                            
                             item_cpf = row.get(col_cpf_name, "")
                             item_nome = row.get(col_nome_name, "")
                             item_op_destino = item_nome
-                            
                             item_regra = row.get("Lista", "")
                             item_dt_ger = formatar_data(row.get(col_dt_hit, ""))
                             item_status = row.get("Parte Relacionada", "Contraparte")
@@ -447,12 +441,44 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
 
                             substituir_texto(doc_item, dic_item)
 
-                            doc_buf = io.BytesIO()
-                            doc_item.save(doc_buf)
-                            doc_buf.seek(0)
-
-                            fname = f"Dossiê de alerta PLD-FT - {cod}.docx"
-                            zip_file.writestr(fname, doc_buf.getvalue())
+                            # --- LÓGICA DE EXPORTAÇÃO (DOCX ou PDF) ---
+                            if "pdf" in formato_lote.lower():
+                                try:
+                                    from docx2pdf import convert
+                                    
+                                    # Cria arquivos temporários para a conversão
+                                    with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_docx:
+                                        doc_item.save(tmp_docx.name)
+                                        tmp_docx_path = tmp_docx.name
+                                    
+                                    tmp_pdf_path = tmp_docx_path.replace(".docx", ".pdf")
+                                    
+                                    # Executa a conversão chamando o Word em background
+                                    convert(tmp_docx_path, tmp_pdf_path)
+                                    
+                                    # Lê o PDF gerado e joga no ZIP
+                                    with open(tmp_pdf_path, "rb") as f_pdf:
+                                        fname = f"Dossiê de alerta PLD-FT - {cod}.pdf"
+                                        zip_file.writestr(fname, f_pdf.read())
+                                        
+                                    # Limpa os arquivos temporários
+                                    os.remove(tmp_docx_path)
+                                    if os.path.exists(tmp_pdf_path):
+                                        os.remove(tmp_pdf_path)
+                                        
+                                except ImportError:
+                                    st.error("⚠️ Biblioteca 'docx2pdf' não encontrada. Pare o Streamlit e execute: pip install docx2pdf")
+                                    st.stop()
+                                except Exception as e:
+                                    st.error(f"⚠️ Erro ao converter para PDF. Verifique se o MS Word está instalado: {e}")
+                                    st.stop()
+                            else:
+                                # Exportação normal em Word (.docx)
+                                doc_buf = io.BytesIO()
+                                doc_item.save(doc_buf)
+                                doc_buf.seek(0)
+                                fname = f"Dossiê de alerta PLD-FT - {cod}.docx"
+                                zip_file.writestr(fname, doc_buf.getvalue())
 
                     zip_buffer.seek(0)
                     nome_zip = f"Dossies_PLD_{datetime.date.today().strftime('%Y%m%d')}.zip"
