@@ -74,7 +74,6 @@ def extrair_tipo_lista(valor):
     if pd.isna(valor) or not valor:
         return "GERAL"
     val = str(valor).strip()
-    # Remove prefixos como "Grupo Lista" ou "Grupo de Lista" mantendo o tipo
     val = re.sub(r'(?i)grupo\s+(de\s+)?lista\s*', '', val).strip().upper()
     return val if val else "GERAL"
 
@@ -138,6 +137,12 @@ def substituir_texto(doc_obj, mapa_substituicao):
                             if chave in p.text:
                                 p.text = p.text.replace(chave, str(valor))
 
+    # Limpeza/Padronização do Título Principal no Word
+    pattern = r"DOSSIÊ DE ANÁLISE DE ALERTA PLD/FT\s*-\s*.*(\d{8}\s*-\s*\d{3})"
+    for p in doc_obj.paragraphs:
+        if "DOSSIÊ DE ANÁLISE DE ALERTA PLD/FT" in p.text:
+            p.text = re.sub(pattern, r"DOSSIÊ DE ANÁLISE DE ALERTA PLD/FT - \1", p.text)
+
 
 col_logo, col_titulo = st.columns([1.2, 5], vertical_alignment="center")
 with col_logo:
@@ -172,23 +177,30 @@ with tab1:
             df.columns = [str(c).strip() for c in df.columns]
             df = df.fillna("")
 
-            # Localiza Coluna M (Grupo de Lista - Índice 12 em base 0)
+            # Localiza Coluna M (Grupo de Lista - Índice 12)
             col_m_name = next((c for c in df.columns if "grupo" in c.lower() and "lista" in c.lower()), None)
             if not col_m_name and len(df.columns) > 12:
                 col_m_name = df.columns[12]
 
-            # Geração do código dinâmico no novo padrão: PLD-FT - (CORRESPONDENCIA RESPECTIVA) - AAAAMMDD - XXX
             hoje_str = datetime.date.today().strftime("%Y%m%d")
-            codigos = []
+            codigos_completos = []
+            codigos_curtos = []
+
             for i, row in df.iterrows():
                 val_m = row.get(col_m_name, "") if col_m_name else ""
                 tipo_lista = extrair_tipo_lista(val_m)
                 seq_str = str(i + 1).zfill(3)
-                codigos.append(f"PLD-FT - {tipo_lista} - {hoje_str} - {seq_str}")
 
-            df["CODIGO_DOSSIE"] = codigos
+                cod_comp = f"PLD-FT - {tipo_lista} - {hoje_str} - {seq_str}"
+                cod_curt = f"{hoje_str} - {seq_str}"
 
-            # Trava nas Colunas G (6) e I (8)
+                codigos_completos.append(cod_comp)
+                codigos_curtos.append(cod_curt)
+
+            df["CODIGO_DOSSIE"] = codigos_completos
+            df["CODIGO_CURTO"] = codigos_curtos
+
+            # Colunas G (6) e I (8)
             col_cpf_name = df.columns[6] if len(df.columns) > 6 else df.columns[0]
             col_nome_name = df.columns[8] if len(df.columns) > 8 else df.columns[1]
 
@@ -353,6 +365,7 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
         with col_ind:
             st.markdown("#### 👤 Download do Dossiê Selecionado")
             cod_dossie = linha.get("CODIGO_DOSSIE", f"PLD-FT - GERAL - {hoje.strftime('%Y%m%d')} - 001")
+            cod_curto = linha.get("CODIGO_CURTO", f"{hoje.strftime('%Y%m%d')} - 001")
             nome_arquivo_padrao = f"{cod_dossie}.docx"
             st.info(f"**Arquivo:** `{nome_arquivo_padrao}`\n\n**Contraparte:** {nome_contraparte}")
 
@@ -363,8 +376,10 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                     preencher_tabela_diligencias(doc, lista_final_diligencias, datas_diligencias)
 
                 dicionario_dados = {
-                    "{{CODIGO_DOSSIE}}": cod_dossie,
-                    "{{NUM_ALERTA}}": cod_dossie,
+                    "{{CODIGO_DOSSIE}}": cod_curto,
+                    "{{NUM_ALERTA}}": cod_curto,
+                    "{{CODIGO_CURTO}}": cod_curto,
+                    "{{CODIGO_COMPLETO}}": cod_dossie,
                     "{{SISTEMA}}": "Advice e-Guardian",
                     "{{NORMATIVA}}": "Lei nº 9.613/1998 e Resolução BCB nº 96/2021",
                     "{{DATA_GERACAO}}": data_geracao,
@@ -422,6 +437,8 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                                 preencher_tabela_diligencias(doc_item, lista_final_diligencias, datas_diligencias)
 
                             cod = row.get("CODIGO_DOSSIE", f"PLD-FT - GERAL - {hoje.strftime('%Y%m%d')} - {str(idx+1).zfill(3)}")
+                            cod_c = row.get("CODIGO_CURTO", f"{hoje.strftime('%Y%m%d')} - {str(idx+1).zfill(3)}")
+                            
                             item_cpf = row.get(col_cpf_name, "")
                             item_nome = row.get(col_nome_name, "")
                             item_op_destino = item_nome
@@ -434,8 +451,10 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                             item_op_val = formatar_moeda(row.get("Valor da Operação", ""))
 
                             dic_item = {
-                                "{{CODIGO_DOSSIE}}": cod,
-                                "{{NUM_ALERTA}}": cod,
+                                "{{CODIGO_DOSSIE}}": cod_c,
+                                "{{NUM_ALERTA}}": cod_c,
+                                "{{CODIGO_CURTO}}": cod_c,
+                                "{{CODIGO_COMPLETO}}": cod,
                                 "{{SISTEMA}}": "Advice e-Guardian",
                                 "{{NORMATIVA}}": "Lei nº 9.613/1998 e Resolução BCB nº 96/2021",
                                 "{{DATA_GERACAO}}": item_dt_ger,
