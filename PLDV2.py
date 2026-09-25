@@ -74,7 +74,7 @@ def extrair_tipo_lista(valor):
     if pd.isna(valor) or not valor:
         return "GERAL"
     val = str(valor).strip()
-    # Remove o prefixo "Grupo Lista" ou "Grupo de Lista" mantendo apenas o tipo
+    # Remove prefixos como "Grupo Lista" ou "Grupo de Lista" mantendo o tipo
     val = re.sub(r'(?i)grupo\s+(de\s+)?lista\s*', '', val).strip().upper()
     return val if val else "GERAL"
 
@@ -177,13 +177,14 @@ with tab1:
             if not col_m_name and len(df.columns) > 12:
                 col_m_name = df.columns[12]
 
-            # Geração do código dinâmico baseado na Coluna M
+            # Geração do código dinâmico no novo padrão: PLD-FT - (CORRESPONDENCIA RESPECTIVA) - AAAAMMDD - XXX
             hoje_str = datetime.date.today().strftime("%Y%m%d")
             codigos = []
             for i, row in df.iterrows():
                 val_m = row.get(col_m_name, "") if col_m_name else ""
                 tipo_lista = extrair_tipo_lista(val_m)
-                codigos.append(f"{tipo_lista}-{hoje_str}-{str(i + 1).zfill(3)}")
+                seq_str = str(i + 1).zfill(3)
+                codigos.append(f"PLD-FT - {tipo_lista} - {hoje_str} - {seq_str}")
 
             df["CODIGO_DOSSIE"] = codigos
 
@@ -351,8 +352,8 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
 
         with col_ind:
             st.markdown("#### 👤 Download do Dossiê Selecionado")
-            cod_dossie = linha.get("CODIGO_DOSSIE", "DOSSIE")
-            nome_arquivo_padrao = f"Dossiê de alerta PLD-FT - {cod_dossie}.docx"
+            cod_dossie = linha.get("CODIGO_DOSSIE", f"PLD-FT - GERAL - {hoje.strftime('%Y%m%d')} - 001")
+            nome_arquivo_padrao = f"{cod_dossie}.docx"
             st.info(f"**Arquivo:** `{nome_arquivo_padrao}`\n\n**Contraparte:** {nome_contraparte}")
 
             if st.button("🚀 Gerar Dossiê do Alerta Atual (.docx)"):
@@ -420,7 +421,7 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                             if lista_final_diligencias:
                                 preencher_tabela_diligencias(doc_item, lista_final_diligencias, datas_diligencias)
 
-                            cod = row.get("CODIGO_DOSSIE", f"DOS-{idx+1}")
+                            cod = row.get("CODIGO_DOSSIE", f"PLD-FT - GERAL - {hoje.strftime('%Y%m%d')} - {str(idx+1).zfill(3)}")
                             item_cpf = row.get(col_cpf_name, "")
                             item_nome = row.get(col_nome_name, "")
                             item_op_destino = item_nome
@@ -472,7 +473,7 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                                     convert(tmp_docx_path, tmp_pdf_path)
                                     
                                     with open(tmp_pdf_path, "rb") as f_pdf:
-                                        fname = f"Dossiê de alerta PLD-FT - {cod}.pdf"
+                                        fname = f"{cod}.pdf"
                                         zip_file.writestr(fname, f_pdf.read())
                                         
                                     os.remove(tmp_docx_path)
@@ -489,7 +490,7 @@ if "df_pld" in st.session_state and "alerta_selecionado" in st.session_state:
                                 doc_buf = io.BytesIO()
                                 doc_item.save(doc_buf)
                                 doc_buf.seek(0)
-                                fname = f"Dossiê de alerta PLD-FT - {cod}.docx"
+                                fname = f"{cod}.docx"
                                 zip_file.writestr(fname, doc_buf.getvalue())
 
                     zip_buffer.seek(0)
