@@ -6,6 +6,8 @@ import re
 import tempfile
 import zipfile
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Pt
 import pandas as pd
 from PIL import Image
 import streamlit as st
@@ -116,6 +118,7 @@ def preencher_tabela_diligencias(doc_obj, lista_diligencias, datas_diligencias):
                 break
 
 def substituir_texto(doc_obj, mapa_substituicao):
+    # 1. Substituição de tags nos parágrafos
     for p in doc_obj.paragraphs:
         for chave, valor in mapa_substituicao.items():
             if chave in p.text:
@@ -125,6 +128,7 @@ def substituir_texto(doc_obj, mapa_substituicao):
                 if chave in p.text:
                     p.text = p.text.replace(chave, str(valor))
 
+    # 2. Substituição de tags nas tabelas
     for table in doc_obj.tables:
         for row in table.rows:
             for cell in row.cells:
@@ -137,11 +141,23 @@ def substituir_texto(doc_obj, mapa_substituicao):
                             if chave in p.text:
                                 p.text = p.text.replace(chave, str(valor))
 
-    # Limpeza/Padronização do Título Principal no Word
-    pattern = r"DOSSIÊ DE ANÁLISE DE ALERTA PLD/FT\s*-\s*.*(\d{8}\s*-\s*\d{3})"
+    # 3. Ajuste + Formatação Rígida do Título (Arial 13pt, Negrito, Centralizado, Sublinhado)
     for p in doc_obj.paragraphs:
         if "DOSSIÊ DE ANÁLISE DE ALERTA PLD/FT" in p.text:
-            p.text = re.sub(pattern, r"DOSSIÊ DE ANÁLISE DE ALERTA PLD/FT - \1", p.text)
+            match = re.search(r"(\d{8}\s*-\s*\d{3})", p.text)
+            if match:
+                novo_titulo = f"DOSSIÊ DE ANÁLISE DE ALERTA PLD/FT - {match.group(1)}"
+            else:
+                novo_titulo = p.text
+
+            p.text = novo_titulo
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+            for run in p.runs:
+                run.font.name = "Arial"
+                run.font.size = Pt(13)
+                run.bold = True
+                run.underline = True
 
 
 col_logo, col_titulo = st.columns([1.2, 5], vertical_alignment="center")
